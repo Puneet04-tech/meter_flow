@@ -6,6 +6,8 @@ const jwt = require('jsonwebtoken');
 router.post('/register', async (req, res) => {
     try {
         const { email, password } = req.body;
+        if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
+        
         let user = await User.findOne({ email });
         if (user) return res.status(400).json({ message: 'User already exists' });
         
@@ -15,13 +17,16 @@ router.post('/register', async (req, res) => {
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
         res.status(201).json({ token });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('Register error:', err);
+        res.status(500).json({ error: err.message || 'Registration failed' });
     }
 });
 
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
+        if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
+        
         const user = await User.findOne({ email });
         if (!user) return res.status(401).json({ message: 'Invalid credentials' });
         
@@ -31,7 +36,8 @@ router.post('/login', async (req, res) => {
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
         res.json({ token });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('Login error:', err);
+        res.status(500).json({ error: err.message || 'Login failed' });
     }
 });
 
