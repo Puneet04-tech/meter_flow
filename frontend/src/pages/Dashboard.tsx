@@ -37,8 +37,13 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if token exists, redirect to login if not
+    if (!localStorage.getItem('token')) {
+      navigate('/login');
+      return;
+    }
     fetchData();
-  }, [activeTab]);
+  }, [activeTab, navigate]);
 
   const fetchData = async () => {
     setLoading(true);

@@ -4,27 +4,37 @@ const UsageLog = require('../models/UsageLog');
 const Api = require('../models/Api');
 const Redis = require('ioredis');
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+  maxRetriesPerRequest: null,
+  retryStrategy(times) {
+    return Math.min(times * 50, 2000);
+  }
+});
+
+redis.on('error', (err) => {
+  // Silent console log instead of crashing
+  console.log('⚡ Redis Offline - Continuing with fallback...');
+});
 
 module.exports = async (req, res) => {
   const apiKeyString = req.headers['x-api-key'];
-  const { apiPath } = req.params; // Expecting /gateway/:apiId/*
 
   if (!apiKeyString) return res.status(401).json({ error: 'API Key is missing' });
 
   try {
-    // 1. Validate API Key (Cache this in production)
     const keyDoc = await ApiKey.findOne({ key: apiKeyString, status: 'active' }).populate('api');
     if (!keyDoc) return res.status(403).json({ error: 'Invalid or revoked API Key' });
 
-    // 2. Rate Limiting (Redis-based)
-    const rateLimitKey = `rl:${apiKeyString}`;
-    const requests = await redis.incr(rateLimitKey);
-    if (requests === 1) {
-      await redis.expire(rateLimitKey, 60); // 1 minute window
-    }
-    if (requests > 100) { // Limit: 100 requests per minute
-      return res.status(429).json({ error: 'Rate limit exceeded' });
+    // 2. Rate Limiting (With Fallback)
+    try {
+      if (redis.status === 'ready') {
+        const rateLimitKey = `rl:${apiKeyString}`;
+        const requests = await redis.incr(rateLimitKey);
+        if (requests === 1) await redis.expire(rateLimitKey, 60);
+        if (requests > 100) return res.status(429).json({ error: 'Rate limit exceeded' });
+      }
+    } catch (redisErr) {
+      console.log('Skipping rate limit check (Redis Error)');
     }
 
     // 3. Forward Request

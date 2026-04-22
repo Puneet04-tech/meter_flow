@@ -21,24 +21,37 @@ exports.createApi = async (req, res) => {
 exports.generateKey = async (req, res) => {
   try {
     const { apiId, name } = req.body;
-    
-    // Check if API exists
-    const api = await Api.findById(apiId);
-    if (!api) return res.status(404).json({ error: 'API not found' });
+    const userId = req.user.id;
+
+    let api = null;
+    if (apiId) {
+      api = await Api.findById(apiId);
+      if (!api) return res.status(404).json({ error: 'API not found' });
+    } else {
+      // Create a default API if none is provided
+      api = new Api({
+        owner: userId,
+        name: name || 'Default API',
+        baseUrl: 'https://api.example.com',
+        description: 'Default API created automatically'
+      });
+      await api.save();
+    }
 
     // Generate a secure API Key
     const key = `mf_${crypto.randomBytes(24).toString('hex')}`;
     
     const apiKey = new ApiKey({
       key,
-      user: req.user.id,
-      api: apiId,
-      name
+      user: userId,
+      api: api._id,
+      name: name || 'Default Key'
     });
 
     await apiKey.save();
-    res.status(201).json({ name, key, status: 'active' });
+    res.status(201).json({ _id: apiKey._id, name: apiKey.name, key, status: 'active', createdAt: apiKey.createdAt });
   } catch (error) {
+    console.error('Generate key error:', error);
     res.status(500).json({ error: error.message });
   }
 };
