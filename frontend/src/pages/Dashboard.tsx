@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Plus, 
@@ -9,11 +9,11 @@ import {
   LogOut,
   ArrowUpRight,
   Clock,
-  Globe
+  Globe,
+  Activity
 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
-  LineChart, 
-  Line, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -34,37 +34,50 @@ const data = [
 ];
 
 const Dashboard: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('Analytics');
+  const navigate = useNavigate();
+
+  const navItems = [
+    { icon: BarChart2, label: 'Analytics' },
+    { icon: Key, label: 'API Keys' },
+    { icon: Globe, label: 'Endpoints' },
+    { icon: CreditCard, label: 'Billing' },
+    { icon: Settings, label: 'Settings' },
+  ];
+
   return (
     <div className="flex h-screen bg-[#050507]">
       {/* Sidebar */}
       <aside className="w-64 border-r border-white/5 bg-[#0a0a0c] flex flex-col p-6">
-        <div className="text-xl font-black cyber-gradient-text mb-12 tracking-tighter">MF_CONTROL</div>
+        <div 
+          onClick={() => navigate('/')} 
+          className="text-xl font-black cyber-gradient-text mb-12 tracking-tighter cursor-pointer hover:opacity-80 transition-opacity"
+        >
+          MF_CONTROL
+        </div>
         
         <nav className="flex-1 space-y-2">
-          {[
-            { icon: BarChart2, label: 'Analytics', active: true },
-            { icon: Key, label: 'API Keys', active: false },
-            { icon: Globe, label: 'Endpoints', active: false },
-            { icon: CreditCard, label: 'Billing', active: false },
-            { icon: Settings, label: 'Settings', active: false },
-          ].map((item, i) => (
-            <a 
+          {navItems.map((item, i) => (
+            <button 
               key={i}
-              href="#" 
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                item.active 
+              onClick={() => setActiveTab(item.label)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full text-left ${
+                activeTab === item.label 
                 ? 'bg-cyber-red/10 text-cyber-red shadow-red-glow' 
                 : 'text-cyber-muted hover:text-white hover:bg-white/5'
               }`}
             >
               <item.icon size={20} />
               <span className="font-bold text-sm tracking-widest">{item.label}</span>
-            </a>
+            </button>
           ))}
         </nav>
 
         <div className="pt-6 border-t border-white/5">
-          <button className="flex items-center gap-3 px-4 py-3 text-cyber-muted hover:text-cyber-red transition-colors w-full">
+          <button 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-3 px-4 py-3 text-cyber-muted hover:text-cyber-red transition-colors w-full"
+          >
             <LogOut size={20} />
             <span className="font-bold text-sm tracking-widest">LOGOUT</span>
           </button>
