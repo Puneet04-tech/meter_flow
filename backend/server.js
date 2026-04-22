@@ -17,7 +17,10 @@ app.use(morgan('dev'));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/mems', require('./routes/apiRoutes'));
 app.use('/api/billing', require('./routes/billingRoutes'));
-app.use('/gateway/:apiId', require('./middleware/gateway'));
+
+// Gateway logic - explicitly use as a regular route to avoid middleware confusion
+const gatewayMiddleware = require('./middleware/gateway');
+app.all('/gateway/:apiId/*', gatewayMiddleware);
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI)
