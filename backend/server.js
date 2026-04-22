@@ -18,9 +18,13 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/mems', require('./routes/apiRoutes'));
 app.use('/api/billing', require('./routes/billingRoutes'));
 
-// Gateway logic - explicitly use as a regular route to avoid middleware confusion
+// Gateway logic - use regular expression directly for Express 5.x
 const gatewayMiddleware = require('./middleware/gateway');
-app.all('/gateway/:apiId/*', gatewayMiddleware);
+app.all(/^\/gateway\/([^\/]+)\/(.*)/, (req, res, next) => {
+  req.params.apiId = req.params[0];
+  req.params.apiPath = req.params[1];
+  gatewayMiddleware(req, res, next);
+});
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI)
