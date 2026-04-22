@@ -15,11 +15,17 @@ const Login: React.FC = () => {
         e.preventDefault();
         setLoading(true);
         try {
+            // Clear old tokens first
+            localStorage.removeItem('token');
+            
             const endpoint = isRegister ? '/auth/register' : '/auth/login';
             console.log(`Attempting ${isRegister ? 'register' : 'login'} at ${endpoint}`);
             const { data } = await API.post(endpoint, { email, password });
             console.log('Auth success, token received');
             localStorage.setItem('token', data.token);
+            
+            // Force a small delay to ensure token is stored
+            await new Promise(r => setTimeout(r, 100));
             navigate('/dashboard');
         } catch (err: any) {
             console.error('Login/Register failed:', err);

@@ -20,8 +20,14 @@ exports.createApi = async (req, res) => {
 
 exports.generateKey = async (req, res) => {
   try {
+    console.log('[GENERATE_KEY] req.user:', req.user);
     const { apiId, name } = req.body;
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      console.error('[GENERATE_KEY] No userId in req.user');
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
 
     let api = null;
     if (apiId) {
@@ -51,7 +57,7 @@ exports.generateKey = async (req, res) => {
     await apiKey.save();
     res.status(201).json({ _id: apiKey._id, name: apiKey.name, key, status: 'active', createdAt: apiKey.createdAt });
   } catch (error) {
-    console.error('Generate key error:', error);
+    console.error('[GENERATE_KEY] Error:', error);
     res.status(500).json({ error: error.message });
   }
 };
