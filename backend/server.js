@@ -20,10 +20,10 @@ app.use('/api/billing', require('./routes/billingRoutes'));
 
 // Gateway logic - use regular expression directly for Express 5.x
 const gatewayMiddleware = require('./middleware/gateway');
-app.all(/^\/gateway\/([^\/]+)\/(.*)/, (req, res, next) => {
+app.all(/^\/gateway\/([^\/]+)\/(.*)/, (req, res) => {
   req.params.apiId = req.params[0];
   req.params.apiPath = req.params[1];
-  gatewayMiddleware(req, res, next);
+  gatewayMiddleware(req, res);
 });
 
 // Database Connection
