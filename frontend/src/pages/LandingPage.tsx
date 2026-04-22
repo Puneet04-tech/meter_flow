@@ -41,13 +41,13 @@ const LandingPage: React.FC = () => {
             
             <div className="flex flex-wrap gap-4">
               <button 
-                onClick={() => navigate('/dashboard')}
-                className="px-8 py-4 bg-cyber-red text-white font-bold rounded-lg shadow-red-glow hover:shadow-red-glow-lg transition-all"
+                onClick={() => navigate('/login')}
+                className="px-8 py-4 bg-cyber-red text-white font-bold rounded-lg shadow-red-glow hover:shadow-red-glow-lg transition-all uppercase tracking-widest"
               >
-                Get Started
+                Access Terminal
               </button>
-              <button className="px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-lg hover:bg-white/10 transition-all">
-                View Demo
+              <button className="px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-lg hover:bg-white/10 transition-all uppercase tracking-widest">
+                Documentation
               </button>
             </div>
           </motion.div>
