@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const ApiKey = require('../models/ApiKey');
 const Api = require('../models/Api');
+const UsageLog = require('../models/UsageLog');
 
 exports.createApi = async (req, res) => {
   try {
@@ -79,8 +80,55 @@ exports.revokeKey = async (req, res) => {
 
 exports.getKeys = async (req, res) => {
   try {
-    const keys = await ApiKey.find({ user: req.user.id }).populate('api', 'name');
-    res.json(keys);
+    const keys = await ApiKey.find({ user: req.user.id }).populate('api', 'name').sort({ createdAt: -1 });
+    
+    // Add rate limit info to each key
+    const keysWithLimits = await Promise.all(keys.map(async (key) => {
+      const usageCount = await UsageLog.countDocuments({ apiKey: key.key });
+      return {
+        ...key.toObject(),
+        usage: usageCount
+      };
+    }));
+    
+    res.json(keysWithLimits);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getApis = async (req, res) => {
+  try {
+    const apis = await Api.find({ owner: req.user.id }).sort({ createdAt: -1 });
+    res.json(apis);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.updateApi = async (req, res) => {
+  try {
+    const { name, baseUrl, description, status } = req.body;
+    const api = await Api.findOneAndUpdate(
+      { _id: req.params.apiId, owner: req.user.id },
+      { name, baseUrl, description, status },
+      { new: true }
+    );
+    if (!api) return res.status(404).json({ error: 'API not found' });
+    res.json(api);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.deleteApi = async (req, res) => {
+  try {
+    const api = await Api.findOneAndDelete({ _id: req.params.apiId, owner: req.user.id });
+    if (!api) return res.status(404).json({ error: 'API not found' });
+    
+    // Delete all associated keys
+    await ApiKey.deleteMany({ api: req.params.apiId });
+    res.json({ message: 'API deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -1,94 +1,216 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Plus, 
-  Key, 
-  BarChart2, 
-  CreditCard, 
-  Settings, 
-  LogOut,
-  ArrowUpRight,
-  Clock,
-  Globe,
-  Activity,
-  Trash2,
-  Copy,
-  CheckCircle,
-  AlertCircle
-} from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  AreaChart,
-  Area
-} from 'recharts';
+import { motion } from 'framer-motion';
+import { Plus, Key, BarChart2, CreditCard, Settings, LogOut, Trash2, Copy, Eye, EyeOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import API from '../api';
 
 const Dashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('Analytics');
   const [keys, setKeys] = useState<any[]>([]);
-  const [stats, setStats] = useState<any[]>([]);
-  const [billing, setBilling] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if token exists, redirect to login if not
     if (!localStorage.getItem('token')) {
       navigate('/login');
       return;
     }
-    fetchData();
-  }, [activeTab, navigate]);
+    fetchKeys();
+  }, [navigate]);
 
-  const fetchData = async () => {
+  const fetchKeys = async () => {
     setLoading(true);
     try {
-      const [keysRes, statsRes, billingRes] = await Promise.all([
-        API.get('/mems/keys'),
-        API.get('/billing/stats'),
-        API.get('/billing/calculate')
-      ]);
-      setKeys(keysRes.data);
-      setStats(statsRes.data);
-      setBilling(billingRes.data);
+      const res = await API.get('/mems/keys');
+      setKeys(res.data);
     } catch (err) {
-      console.error("Failed to fetch dashboard data", err);
+      console.error("Failed to fetch keys", err);
     }
     setLoading(false);
   };
 
   const generateNewKey = async () => {
+    const name = prompt("Enter a label for this key:");
+    if (!name) return;
     try {
-      const name = prompt("Enter a label for this key:");
-      if (!name) return;
       await API.post('/mems/keys/generate', { name });
-      fetchData();
-    } catch (err) {
-      alert("Failed to generate key");
+      fetchKeys();
+    } catch (err: any) {
+      alert("Failed to generate key: " + err.response?.data?.error);
     }
   };
 
   const revokeKey = async (id: string) => {
-    if (!window.confirm("Are you sure you want to revoke this key? It will stop working immediately.")) return;
+    if (!window.confirm("Are you sure you want to revoke this key?")) return;
     try {
       await API.put(`/mems/keys/revoke/${id}`);
-      fetchData();
+      fetchKeys();
     } catch (err) {
       alert("Failed to revoke key");
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
   const navItems = [
-    { icon: BarChart2, label: 'Analytics' },
-    { icon: Key, label: 'API Keys' },
-    { icon: CreditCard, label: 'Billing' },
-    { icon: Settings, label: 'Settings' },
+    { icon: BarChart2, label: 'Analytics', path: '/analytics' },
+    { icon: Key, label: 'API Keys', path: '/dashboard' },
+    { icon: CreditCard, label: 'Billing', path: '/billing' },
+    { icon: Settings, label: 'Settings', path: '/settings' },
   ];
+
+  return (
+    <div className="flex h-screen bg-[#050507] text-white overflow-hidden">
+      {/* Sidebar */}
+      <aside className="w-64 border-r border-white/5 bg-[#0a0a0c] flex flex-col p-6 z-20">
+        <div 
+          onClick={() => navigate('/')} 
+          className="text-xl font-black cyber-gradient-text mb-12 tracking-tighter cursor-pointer hover:opacity-80 transition-opacity"
+        >
+          MF_CONTROL
+        </div>
+        
+        <nav className="flex-1 space-y-2">
+          {navItems.map((item, i) => (
+            <button 
+              key={i}
+              onClick={() => navigate(item.path)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all w-full text-left ${
+                window.location.pathname === item.path
+                ? 'bg-cyber-red/10 text-cyber-red shadow-red-glow' 
+                : 'text-cyber-muted hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <item.icon size={20} />
+              <span className="font-bold text-sm tracking-widest uppercase">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="pt-6 border-t border-white/5">
+          <button 
+            onClick={() => {
+              localStorage.removeItem('token');
+              navigate('/login');
+            }}
+            className="flex items-center gap-3 px-4 py-3 text-cyber-muted hover:text-cyber-red transition-colors w-full"
+          >
+            <LogOut size={20} />
+            <span className="font-bold text-sm tracking-widest uppercase">LOGOUT</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto p-12 bg-cyber-bg relative">
+        <header className="flex justify-between items-end mb-12">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <span className="w-2 h-2 bg-cyber-red rounded-full animate-ping" />
+              <span className="text-cyber-red text-xs font-black tracking-[0.3em] uppercase">System_Active</span>
+            </div>
+            <h2 className="text-5xl font-black uppercase tracking-tighter italic">
+              API Keys<span className="text-cyber-red">.</span>exe
+            </h2>
+          </div>
+          <button 
+            onClick={generateNewKey}
+            className="cyber-button flex items-center gap-2 group"
+          >
+            <Plus size={18} className="group-hover:rotate-90 transition-transform" />
+            Generate_Key
+          </button>
+        </header>
+
+        {/* Keys List */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+          {keys.length === 0 ? (
+            <div className="cyber-card text-center py-12">
+              <Key size={48} className="mx-auto text-cyber-muted mb-4 opacity-50" />
+              <p className="text-cyber-muted mb-6">No active keys found in the mainframe.</p>
+              <button
+                onClick={generateNewKey}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-cyber-red text-white rounded-lg hover:bg-cyber-red/80 transition-colors font-bold"
+              >
+                <Plus size={18} />
+                Create_First_Key
+              </button>
+            </div>
+          ) : (
+            keys.map((k: any) => (
+              <div key={k._id} className="cyber-card flex justify-between items-center group hover:border-cyber-red/50 transition-colors">
+                <div className="flex items-center gap-6 flex-1">
+                  <div className={`p-3 rounded-lg ${k.status === 'active' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                    <Key size={24} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h4 className="font-black text-lg uppercase italic">{k.name}</h4>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${k.status === 'active' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                        {k.status === 'active' ? 'OPERATIONAL' : 'REVOKED'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 font-mono text-cyber-muted text-sm">
+                      <span onClick={() => setShowKeys({ ...showKeys, [k._id]: !showKeys[k._id] })} className="cursor-pointer hover:text-white transition-colors">
+                        {showKeys[k._id] ? k.key : k.key.substring(0, 12) + '••••••••••••'}
+                      </span>
+                      <button onClick={() => setShowKeys({ ...showKeys, [k._id]: !showKeys[k._id] })} className="hover:text-cyber-red">
+                        {showKeys[k._id] ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                    <div className="text-[10px] text-cyber-muted mt-2">API: {k.api?.name} | Usage: {k.usage} requests</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => copyToClipboard(k.key)}
+                    className="p-2 hover:bg-white/10 rounded-lg transition-colors text-cyber-muted hover:text-white"
+                    title="Copy key"
+                  >
+                    <Copy size={18} />
+                  </button>
+                  {k.status === 'active' && (
+                    <button 
+                      onClick={() => revokeKey(k._id)}
+                      className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-cyber-muted hover:text-red-500"
+                      title="Revoke key"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </motion.div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-6 mt-12">
+          <button
+            onClick={() => navigate('/create-api')}
+            className="cyber-card text-center py-8 hover:border-cyber-red/50 transition-colors group"
+          >
+            <Plus className="mx-auto text-cyber-red mb-3 group-hover:scale-110 transition-transform" size={32} />
+            <div className="font-black text-lg mb-1">Register_API</div>
+            <div className="text-cyber-muted text-xs">Add new API endpoint</div>
+          </button>
+          <button
+            onClick={() => navigate('/analytics')}
+            className="cyber-card text-center py-8 hover:border-cyber-red/50 transition-colors group"
+          >
+            <BarChart2 className="mx-auto text-cyber-red mb-3 group-hover:scale-110 transition-transform" size={32} />
+            <div className="font-black text-lg mb-1">View_Analytics</div>
+            <div className="text-cyber-muted text-xs">Usage & performance metrics</div>
+          </button>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Dashboard;
 
   return (
     <div className="flex h-screen bg-[#050507] text-white overflow-hidden">

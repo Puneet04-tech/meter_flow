@@ -3,6 +3,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import Analytics from './pages/Analytics';
+import Billing from './pages/Billing';
+import Settings from './pages/Settings';
+import CreateAPI from './pages/CreateAPI';
 
 function App() {
   return (
@@ -16,6 +20,10 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/billing" element={<Billing />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/create-api" element={<CreateAPI />} />
       </Routes>
     </Router>
   );
