@@ -7,6 +7,8 @@ const stripeService = require('../services/stripeService');
 
 exports.getUsageStats = async (req, res) => {
   try {
+    console.log('[ANALYTICS] Getting usage stats for user:', req.user.id);
+    
     const stats = await UsageLog.aggregate([
       { $match: { userId: req.user.id } },
       {
@@ -18,8 +20,11 @@ exports.getUsageStats = async (req, res) => {
       },
       { $sort: { "_id": 1 } }
     ]);
+    
+    console.log('[ANALYTICS] Usage stats found:', stats);
     res.json(stats);
   } catch (error) {
+    console.error('[ANALYTICS] Error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -51,6 +56,8 @@ exports.calculateBilling = async (req, res) => {
 
 exports.getKeyStats = async (req, res) => {
   try {
+    console.log('[KEY_STATS] Getting key stats for user:', req.user.id);
+    
     const stats = await UsageLog.aggregate([
       { $match: { userId: req.user.id } },
       { $group: {
@@ -62,8 +69,11 @@ exports.getKeyStats = async (req, res) => {
       }
     ]);
     
+    console.log('[KEY_STATS] Raw stats:', stats);
+    
     const statsWithKeyInfo = await Promise.all(stats.map(async (stat) => {
       const key = await ApiKey.findOne({ key: stat._id }).populate('api', 'name');
+      console.log('[KEY_STATS] Key found:', key?.name, 'for apiKey:', stat._id);
       return {
         keyId: stat._id,
         keyName: key?.name || 'Unknown',
@@ -74,8 +84,10 @@ exports.getKeyStats = async (req, res) => {
       };
     }));
     
+    console.log('[KEY_STATS] Final stats with key info:', statsWithKeyInfo);
     res.json(statsWithKeyInfo);
   } catch (error) {
+    console.error('[KEY_STATS] Error:', error);
     res.status(500).json({ error: error.message });
   }
 };

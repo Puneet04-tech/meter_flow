@@ -16,14 +16,17 @@ const Analytics: React.FC = () => {
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
+      console.log('📊 Fetching analytics...');
       const [statsRes, keyStatsRes] = await Promise.all([
         API.get('/billing/stats'),
         API.get('/billing/key-stats')
       ]);
+      console.log('📊 Stats response:', statsRes.data);
+      console.log('📊 Key stats response:', keyStatsRes.data);
       setStats(statsRes.data);
       setKeyStats(keyStatsRes.data);
     } catch (err) {
-      console.error("Failed to fetch analytics", err);
+      console.error("❌ Failed to fetch analytics", err);
     }
     setLoading(false);
   };
