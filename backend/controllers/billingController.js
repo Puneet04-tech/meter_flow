@@ -7,10 +7,28 @@ const stripeService = require('../services/stripeService');
 
 exports.getUsageStats = async (req, res) => {
   try {
-    console.log('[ANALYTICS] Getting usage stats for user:', req.user.id);
+    const queryUserId = req.user.id;
+    console.log('[ANALYTICS] Getting usage stats');
+    console.log('  - queryUserId:', queryUserId, 'type:', typeof queryUserId, 'stringified:', queryUserId.toString());
+    
+    // First check if ANY logs exist for this user
+    const allLogs = await UsageLog.find({ userId: queryUserId });
+    console.log('[ANALYTICS] Logs with direct match:', allLogs.length, allLogs.length > 0 ? allLogs[0] : 'none');
+    
+    // Also try without conversion
+    const allLogsAny = await UsageLog.find({});
+    console.log('[ANALYTICS] ALL logs in DB:', allLogsAny.length);
+    if (allLogsAny.length > 0) {
+      console.log('[ANALYTICS] Sample log:', {
+        userId: allLogsAny[0].userId,
+        userIdType: typeof allLogsAny[0].userId,
+        stringified: allLogsAny[0].userId.toString(),
+        equals: allLogsAny[0].userId.toString() === queryUserId.toString()
+      });
+    }
     
     const stats = await UsageLog.aggregate([
-      { $match: { userId: req.user.id } },
+      { $match: { userId: queryUserId } },
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
@@ -21,7 +39,7 @@ exports.getUsageStats = async (req, res) => {
       { $sort: { "_id": 1 } }
     ]);
     
-    console.log('[ANALYTICS] Usage stats found:', stats);
+    console.log('[ANALYTICS] Usage stats aggregation result:', stats);
     res.json(stats);
   } catch (error) {
     console.error('[ANALYTICS] Error:', error);

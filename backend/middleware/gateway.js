@@ -54,14 +54,24 @@ module.exports = async (req, res) => {
       const duration = Date.now() - startTime;
 
       // 4. Log Usage (Async - don't block response)
+      const userIdToLog = keyDoc.user;
+      console.log('[GATEWAY] Creating usage log with:');
+      console.log('  - apiKey:', apiKeyString);
+      console.log('  - userId:', userIdToLog, 'type:', typeof userIdToLog, 'stringified:', userIdToLog.toString());
+      console.log('  - apiId:', keyDoc.api._id);
+      
       UsageLog.create({
         apiKey: apiKeyString,
-        userId: keyDoc.user,
+        userId: userIdToLog,
         apiId: keyDoc.api._id,
         endpoint: req.url,
         method: req.method,
         status: response.status,
         latency: duration
+      }).then((doc) => {
+        console.log('[GATEWAY] ✅ Usage log created:', doc);
+      }).catch(err => {
+        console.error('[GATEWAY] ❌ Failed to create usage log:', err.message);
       });
 
       // 5. Check usage limits and trigger webhooks (Async)
