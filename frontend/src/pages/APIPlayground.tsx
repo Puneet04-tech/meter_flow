@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Copy, Check, Settings, Send, Database } from 'lucide-react';
+import { Play, Copy, Check, Settings, Send, Database, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import API from '../api';
 
 interface APIRequest {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -18,16 +19,38 @@ interface APIResponse {
   time: number;
 }
 
+interface ApiKeyData {
+  _id: string;
+  name: string;
+  key: string;
+}
+
 const APIPlayground: React.FC = () => {
+  const [apiKeys, setApiKeys] = useState<ApiKeyData[]>([]);
+  const [selectedKeyId, setSelectedKeyId] = useState<string>('');
+  const [useGateway, setUseGateway] = useState(false);
+  
   const [request, setRequest] = useState<APIRequest>({
     method: 'GET',
     url: 'https://jsonplaceholder.typicode.com/posts/1',
     headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': 'mf_your_api_key_here'
+      'Content-Type': 'application/json'
     },
     body: ''
   });
+
+  // Load API keys on component mount
+  useEffect(() => {
+    const fetchKeys = async () => {
+      try {
+        const response = await API.get('/mems/keys');
+        setApiKeys(response.data);
+      } catch (error) {
+        console.error('Failed to fetch API keys:', error);
+      }
+    };
+    fetchKeys();
+  }, []);
   
   const [response, setResponse] = useState<APIResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -47,15 +70,37 @@ const APIPlayground: React.FC = () => {
     const startTime = Date.now();
     
     try {
+      // If gateway mode is enabled, route through MeterFlow gateway
+      let finalUrl = request.url;
+      let finalHeaders = { ...request.headers };
+      
+      if (useGateway && selectedKeyId) {
+        const selectedKey = apiKeys.find(k => k._id === selectedKeyId);
+        if (!selectedKey) {
+          throw new Error('Selected API key not found');
+        }
+        
+        // Add API key header for gateway authentication
+        finalHeaders['x-api-key'] = selectedKey.key;
+        
+        // For now, use JSONPlaceholder as the gateway test endpoint
+        // In production, you would use your own registered API endpoint
+        finalUrl = `http://localhost:5000/gateway/test/${request.url.replace(/^https?:\/\//, '')}`;
+      }
+      
       const config: any = {
         method: request.method,
-        url: request.url,
-        headers: request.headers,
+        url: finalUrl,
+        headers: finalHeaders,
         timeout: 10000
       };
 
       if (request.body && ['POST', 'PUT', 'PATCH'].includes(request.method)) {
-        config.data = JSON.parse(request.body);
+        try {
+          config.data = JSON.parse(request.body);
+        } catch (e) {
+          config.data = request.body;
+        }
       }
 
       const axiosResponse = await axios(config);
@@ -130,6 +175,37 @@ const APIPlayground: React.FC = () => {
             </div>
 
             <div className="p-4 space-y-4">
+              {/* Gateway Mode Toggle */}
+              <div className="bg-gray-800/50 border border-gray-700 rounded p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <input
+                    type="checkbox"
+                    id="gateway-mode"
+                    checked={useGateway}
+                    onChange={(e) => setUseGateway(e.target.checked)}
+                    className="w-4 h-4 rounded accent-blue-500"
+                  />
+                  <label htmlFor="gateway-mode" className="text-sm font-medium flex items-center gap-2">
+                    <Database className="w-4 h-4" />
+                    Route through MeterFlow Gateway
+                  </label>
+                </div>
+                {useGateway && (
+                  <select
+                    value={selectedKeyId}
+                    onChange={(e) => setSelectedKeyId(e.target.value)}
+                    className="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-gray-300"
+                  >
+                    <option value="">Select API Key to track usage...</option>
+                    {apiKeys.map(key => (
+                      <option key={key._id} value={key._id}>
+                        {key.name} (Usage: {(key as any).usage || 0} requests)
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
               {/* Method and URL */}
               <div className="flex gap-2">
                 <select
