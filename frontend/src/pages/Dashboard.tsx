@@ -287,21 +287,35 @@ const Dashboard: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-300 mb-2">Select API</label>
                 {apis.length === 0 ? (
                   <div className="bg-gray-800 border border-gray-700 rounded p-3 text-sm text-gray-400">
-                    <p>No APIs found. <button onClick={() => { setShowKeyModal(false); navigate('/create-api'); }} className="text-blue-400 hover:underline">Create one first</button></p>
+                    <p className="mb-2">No APIs found.</p>
+                    <button 
+                      onClick={() => { setShowKeyModal(false); navigate('/create-api'); }} 
+                      className="text-blue-400 hover:underline font-medium"
+                    >
+                      Create an API first →
+                    </button>
                   </div>
                 ) : (
-                  <select
-                    value={selectedApiId}
-                    onChange={(e) => setSelectedApiId(e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-gray-100 focus:border-red-500 focus:outline-none"
-                  >
-                    <option value="">-- Select an API --</option>
-                    {apis.map((api: any) => (
-                      <option key={api._id} value={api._id}>
-                        {api.name} ({api.baseUrl})
-                      </option>
-                    ))}
-                  </select>
+                  <>
+                    <select
+                      value={selectedApiId}
+                      onChange={(e) => setSelectedApiId(e.target.value)}
+                      className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-gray-100 focus:border-red-500 focus:outline-none"
+                    >
+                      <option value="">-- Select an API --</option>
+                      {apis.map((api: any) => (
+                        <option key={api._id} value={api._id}>
+                          {api.name} ({api.baseUrl})
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => { setShowKeyModal(false); navigate('/create-api'); }}
+                      className="mt-2 text-xs text-blue-400 hover:underline"
+                    >
+                      + Create new API
+                    </button>
+                  </>
                 )}
               </div>
 
