@@ -1,0 +1,61 @@
+services:
+  # Backend Service
+  - type: web
+    name: meterflow-backend
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGODB_URI
+        fromDatabase:
+          name: meterflow-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: meterflow-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRO_PRICE_ID
+        sync: false
+      - key: STRIPE_ENTERPRISE_PRICE_ID
+        sync: false
+
+  # Frontend Service
+  - type: web
+    name: meterflow-frontend
+    env: static
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/build
+    routes:
+      - type: rewrite
+        source: /.*
+        destination: /index.html
+
+  # MongoDB Database
+  - type: pserv
+    name: meterflow-db
+    env: docker
+    plan: free
+    dockerfilePath: ./mongodb/Dockerfile
+    disk:
+      name: meterflow-db-disk
+      mountPath: /data/db
+
+  # Redis Cache
+  - type: redis
+    name: meterflow-redis
+    plan: free
+    ipAllowList: []

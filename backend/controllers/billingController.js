@@ -1,6 +1,9 @@
 const UsageLog = require('../models/UsageLog');
 const User = require('../models/User');
 const ApiKey = require('../models/ApiKey');
+const Subscription = require('../models/Subscription');
+const Invoice = require('../models/Invoice');
+const stripeService = require('../services/stripeService');
 
 exports.getUsageStats = async (req, res) => {
   try {
@@ -109,5 +112,127 @@ exports.updateUserProfile = async (req, res) => {
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+// Stripe subscription methods
+exports.createSubscription = async (req, res) => {
+  try {
+    const { plan } = req.body;
+    
+    if (!['pro', 'enterprise'].includes(plan)) {
+      return res.status(400).json({ error: 'Invalid plan selected' });
+    }
+
+    const subscription = await stripeService.createSubscription(req.user.id, plan);
+    
+    res.json({
+      subscription,
+      clientSecret: subscription.latest_invoice.payment_intent.client_secret
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.cancelSubscription = async (req, res) => {
+  try {
+    const canceledSubscription = await stripeService.cancelSubscription(req.user.id);
+    res.json(canceledSubscription);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getSubscription = async (req, res) => {
+  try {
+    const subscription = await Subscription.findOne({ user: req.user.id })
+      .populate('user', 'email');
+    
+    if (!subscription) {
+      return res.status(404).json({ error: 'No subscription found' });
+    }
+
+    res.json(subscription);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getInvoices = async (req, res) => {
+  try {
+    const invoices = await Invoice.find({ user: req.user.id })
+      .sort({ createdAt: -1 })
+      .limit(12);
+    
+    res.json(invoices);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.generateInvoice = async (req, res) => {
+  try {
+    const invoice = await stripeService.generateInvoice(req.user.id);
+    res.json(invoice);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Enhanced billing calculation
+exports.calculateBilling = async (req, res) => {
+  try {
+    const subscription = await Subscription.findOne({ user: req.user.id });
+    const usage = await stripeService.calculateUsage(
+      req.user.id,
+      subscription?.currentPeriodStart || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      subscription?.currentPeriodEnd || new Date()
+    );
+    
+    const plan = stripeService.plans[subscription?.plan || 'free'];
+    const billableRequests = Math.max(0, usage.totalRequests - plan.requests);
+    
+    let amount = 0;
+    let ratePerRequest = 0;
+    
+    if (subscription?.plan === 'pro') {
+      amount = 29; // Base fee
+      ratePerRequest = 0.01;
+      amount += billableRequests * ratePerRequest;
+    } else if (subscription?.plan === 'enterprise') {
+      amount = 99; // Base fee
+      ratePerRequest = 0.005;
+      amount += billableRequests * ratePerRequest;
+    }
+
+    res.json({
+      plan: subscription?.plan || 'free',
+      totalRequests: usage.totalRequests,
+      freeTier: plan.requests,
+      billableRequests,
+      amount: amount.toFixed(2),
+      ratePerRequest,
+      currency: 'USD',
+      status: subscription?.status || 'active',
+      avgLatency: usage.avgLatency?.toFixed(2) || 0,
+      successRate: ((usage.successRate || 0) * 100).toFixed(2)
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Stripe webhook handler
+exports.handleWebhook = async (req, res) => {
+  try {
+    const sig = req.headers['stripe-signature'];
+    const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    
+    await stripeService.handleWebhook(event);
+    res.json({ received: true });
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(400).json({ error: error.message });
   }
 };

@@ -9,4 +9,14 @@ router.get('/key-stats', auth, billingController.getKeyStats);
 router.get('/profile', auth, billingController.getUserProfile);
 router.put('/profile', auth, billingController.updateUserProfile);
 
+// Subscription routes
+router.post('/subscription', auth, billingController.createSubscription);
+router.delete('/subscription', auth, billingController.cancelSubscription);
+router.get('/subscription', auth, billingController.getSubscription);
+router.get('/invoices', auth, billingController.getInvoices);
+router.post('/invoices/generate', auth, billingController.generateInvoice);
+
+// Webhook route (no auth required)
+router.post('/webhook', billingController.handleWebhook);
+
 module.exports = router;

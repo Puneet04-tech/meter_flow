@@ -3,6 +3,7 @@ const ApiKey = require('../models/ApiKey');
 const UsageLog = require('../models/UsageLog');
 const Api = require('../models/Api');
 const Redis = require('ioredis');
+const webhookService = require('../services/webhookService');
 
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
@@ -61,6 +62,11 @@ module.exports = async (req, res) => {
         method: req.method,
         status: response.status,
         latency: duration
+      });
+
+      // 5. Check usage limits and trigger webhooks (Async)
+      webhookService.checkUsageLimits(keyDoc.user).catch(err => {
+        console.error('Usage limit check failed:', err);
       });
 
       res.status(response.status).json(response.data);

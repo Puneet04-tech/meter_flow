@@ -7,6 +7,7 @@ import Analytics from './pages/Analytics';
 import Billing from './pages/Billing';
 import Settings from './pages/Settings';
 import CreateAPI from './pages/CreateAPI';
+import APIPlayground from './pages/APIPlayground';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
         <Route path="/billing" element={<Billing />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/create-api" element={<CreateAPI />} />
+        <Route path="/playground" element={<APIPlayground />} />
       </Routes>
     </Router>
   );

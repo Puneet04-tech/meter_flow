@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "name": "meterflow",
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
+    },
+    {
+      "src": "backend/package.json",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "MONGODB_URI": "@mongodb_uri",
+    "REDIS_URL": "@redis_url",
+    "JWT_SECRET": "@jwt_secret",
+    "STRIPE_SECRET_KEY": "@stripe_secret_key",
+    "STRIPE_WEBHOOK_SECRET": "@stripe_webhook_secret",
+    "STRIPE_PRO_PRICE_ID": "@stripe_pro_price_id",
+    "STRIPE_ENTERPRISE_PRICE_ID": "@stripe_enterprise_price_id"
+  },
+  "functions": {
+    "backend/server.js": {
+      "maxDuration": 10
+    }
+  },
+  "regions": ["iad1"]
+}

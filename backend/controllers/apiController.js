@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const ApiKey = require('../models/ApiKey');
 const Api = require('../models/Api');
 const UsageLog = require('../models/UsageLog');
+const webhookService = require('../services/webhookService');
 
 exports.createApi = async (req, res) => {
   try {
@@ -56,6 +57,15 @@ exports.generateKey = async (req, res) => {
     });
 
     await apiKey.save();
+    
+    // Trigger webhook for API key creation
+    await webhookService.triggerWebhook(userId, webhookService.events.API_KEY_CREATED, {
+      keyId: apiKey._id,
+      keyName: apiKey.name,
+      apiId: api._id,
+      apiName: api.name
+    });
+    
     res.status(201).json({ _id: apiKey._id, name: apiKey.name, key, status: 'active', createdAt: apiKey.createdAt });
   } catch (error) {
     console.error('[GENERATE_KEY] Error:', error);
@@ -72,6 +82,14 @@ exports.revokeKey = async (req, res) => {
       { new: true }
     );
     if (!apiKey) return res.status(404).json({ error: 'Key not found' });
+    
+    // Trigger webhook for API key revocation
+    await webhookService.triggerWebhook(req.user.id, webhookService.events.API_KEY_REVOKED, {
+      keyId: apiKey._id,
+      keyName: apiKey.name,
+      revokedAt: new Date()
+    });
+    
     res.json({ message: 'API Key revoked successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

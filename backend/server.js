@@ -17,6 +17,8 @@ app.use(morgan('dev'));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/mems', require('./routes/apiRoutes'));
 app.use('/api/billing', require('./routes/billingRoutes'));
+app.use('/api/webhooks', require('./routes/webhookRoutes'));
+app.use('/api/audit', require('./routes/auditRoutes'));
 
 // Gateway logic - use regular expression directly for Express 5.x
 const gatewayMiddleware = require('./middleware/gateway');
