@@ -21,6 +21,7 @@ exports.createApi = async (req, res) => {
 };
 
 exports.generateKey = async (req, res) => {
+  console.log('🔑 generateKey controller called');
   try {
     console.log('[GENERATE_KEY] req.user:', req.user);
     const { apiId, name } = req.body;

@@ -20,9 +20,18 @@ app.use('/api/billing', require('./routes/billingRoutes'));
 app.use('/api/webhooks', require('./routes/webhookRoutes'));
 app.use('/api/audit', require('./routes/auditRoutes'));
 
+// Route check middleware (moved to end)
+app.use((req, res, next) => {
+  console.log(`🌐 ${req.method} ${req.url} - Route check`);
+  next();
+});
+
+// Cache busting for route changes
+delete require.cache[require.resolve('./routes/apiRoutes')];
+
 // Gateway logic - use regular expression directly for Express 5.x
 const gatewayMiddleware = require('./middleware/gateway');
-app.all(/^\/gateway\/([^\/]+)\/(.*)/, (req, res) => {
+app.all(/^\/gateway\/([a-f0-9]{24})\/(.*)/, (req, res) => {
   req.params.apiId = req.params[0];
   req.params.apiPath = req.params[1];
   gatewayMiddleware(req, res);

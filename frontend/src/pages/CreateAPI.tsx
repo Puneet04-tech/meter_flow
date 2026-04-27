@@ -15,10 +15,11 @@ const CreateAPI: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await API.post('/mems/create', { name, baseUrl, description });
+      await API.post('/mems/create-api', { name, baseUrl, description });
       alert('API created successfully!');
       navigate('/dashboard');
     } catch (err: any) {
+      console.error('Create API error:', err);
       alert('Failed to create API: ' + (err.response?.data?.error || err.message));
     }
     setLoading(false);

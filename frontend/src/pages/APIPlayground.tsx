@@ -65,7 +65,7 @@ const APIPlayground: React.FC = () => {
         status: axiosResponse.status,
         statusText: axiosResponse.statusText,
         data: axiosResponse.data,
-        headers: axiosResponse.headers,
+        headers: axiosResponse.headers as Record<string, string>,
         time: endTime - startTime
       });
     } catch (error: any) {
@@ -75,7 +75,7 @@ const APIPlayground: React.FC = () => {
         status: error.response?.status || 0,
         statusText: error.response?.statusText || error.message,
         data: error.response?.data || { error: error.message },
-        headers: error.response?.headers || {},
+        headers: (error.response?.headers as Record<string, string>) || {},
         time: endTime - startTime
       });
     } finally {
