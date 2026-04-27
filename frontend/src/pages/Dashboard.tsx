@@ -6,8 +6,12 @@ import API from '../api';
 
 const Dashboard: React.FC = () => {
   const [keys, setKeys] = useState<any[]>([]);
+  const [apis, setApis] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [selectedApiId, setSelectedApiId] = useState('');
+  const [keyName, setKeyName] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,7 +20,17 @@ const Dashboard: React.FC = () => {
       return;
     }
     fetchKeys();
+    fetchApis();
   }, [navigate]);
+
+  const fetchApis = async () => {
+    try {
+      const res = await API.get('/mems/list-apis');
+      setApis(res.data);
+    } catch (err) {
+      console.error("Failed to fetch APIs", err);
+    }
+  };
 
   const fetchKeys = async () => {
     setLoading(true);
@@ -30,12 +44,17 @@ const Dashboard: React.FC = () => {
   };
 
   const generateNewKey = async () => {
-    const name = prompt("Enter a label for this key:");
-    if (!name) return;
+    if (!selectedApiId || !keyName) {
+      alert('Please select an API and enter a key name');
+      return;
+    }
     try {
-      await API.post('/mems/keys/generate-key', { name });
+      await API.post('/mems/keys/generate-key', { name: keyName, apiId: selectedApiId });
       fetchKeys();
       alert('API key generated successfully!');
+      setShowKeyModal(false);
+      setKeyName('');
+      setSelectedApiId('');
     } catch (err: any) {
       console.error('Generate key error:', err);
       alert("Failed to generate key: " + (err.response?.data?.error || err.message));
@@ -120,7 +139,7 @@ const Dashboard: React.FC = () => {
             </h2>
           </div>
           <button 
-            onClick={generateNewKey}
+            onClick={() => setShowKeyModal(true)}
             className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-lg transition-all flex items-center gap-2"
           >
             <Plus size={18} />
@@ -135,7 +154,7 @@ const Dashboard: React.FC = () => {
               <Key size={48} className="mx-auto text-gray-500 mb-4 opacity-50" />
               <p className="text-gray-400 mb-6">No active keys found in the mainframe.</p>
               <button
-                onClick={generateNewKey}
+                onClick={() => setShowKeyModal(true)}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-bold"
               >
                 <Plus size={18} />
@@ -252,6 +271,70 @@ const Dashboard: React.FC = () => {
             Upgrade Now
           </button>
         </div>
+
+        {/* Key Generation Modal */}
+        {showKeyModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-md w-full"
+            >
+              <h3 className="text-xl font-bold mb-4">Generate New API Key</h3>
+              
+              {/* API Selection */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-300 mb-2">Select API</label>
+                {apis.length === 0 ? (
+                  <div className="bg-gray-800 border border-gray-700 rounded p-3 text-sm text-gray-400">
+                    <p>No APIs found. <button onClick={() => { setShowKeyModal(false); navigate('/create-api'); }} className="text-blue-400 hover:underline">Create one first</button></p>
+                  </div>
+                ) : (
+                  <select
+                    value={selectedApiId}
+                    onChange={(e) => setSelectedApiId(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-gray-100 focus:border-red-500 focus:outline-none"
+                  >
+                    <option value="">-- Select an API --</option>
+                    {apis.map((api: any) => (
+                      <option key={api._id} value={api._id}>
+                        {api.name} ({api.baseUrl})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Key Name */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-300 mb-2">Key Label</label>
+                <input
+                  type="text"
+                  value={keyName}
+                  onChange={(e) => setKeyName(e.target.value)}
+                  placeholder="e.g., Production, Testing"
+                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-gray-100 focus:border-red-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowKeyModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={generateNewKey}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-bold"
+                >
+                  Generate Key
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </main>
     </div>
   );
