@@ -23,6 +23,12 @@ interface ApiKeyData {
   _id: string;
   name: string;
   key: string;
+  api?: {
+    _id: string;
+    name: string;
+    baseUrl: string;
+  };
+  usage?: number;
 }
 
 const APIPlayground: React.FC = () => {
@@ -80,12 +86,19 @@ const APIPlayground: React.FC = () => {
           throw new Error('Selected API key not found');
         }
         
+        if (!selectedKey.api?._id) {
+          throw new Error('API not found for this key');
+        }
+        
         // Add API key header for gateway authentication
         finalHeaders['x-api-key'] = selectedKey.key;
         
-        // For now, use JSONPlaceholder as the gateway test endpoint
-        // In production, you would use your own registered API endpoint
-        finalUrl = `http://localhost:5000/gateway/test/${request.url.replace(/^https?:\/\//, '')}`;
+        // Route through MeterFlow gateway using the actual API ID
+        // Remove protocol from URL and use the API's base URL path
+        const pathOnly = request.url.replace(/^https?:\/\/[^\/]+/, '');
+        finalUrl = `http://localhost:5000/gateway/${selectedKey.api._id}${pathOnly}`;
+        
+        console.log('🚀 Gateway Request:', { finalUrl, apiId: selectedKey.api._id, keyId: selectedKeyId });
       }
       
       const config: any = {
@@ -116,6 +129,7 @@ const APIPlayground: React.FC = () => {
     } catch (error: any) {
       const endTime = Date.now();
       
+      console.error('Request error:', error.message);
       setResponse({
         status: error.response?.status || 0,
         statusText: error.response?.statusText || error.message,
@@ -199,7 +213,7 @@ const APIPlayground: React.FC = () => {
                     <option value="">Select API Key to track usage...</option>
                     {apiKeys.map(key => (
                       <option key={key._id} value={key._id}>
-                        {key.name} (Usage: {(key as any).usage || 0} requests)
+                        {key.name} - API: {key.api?.name || 'Unknown'} (Usage: {key.usage || 0})
                       </option>
                     ))}
                   </select>
