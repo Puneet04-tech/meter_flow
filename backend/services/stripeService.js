@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Subscription = require('../models/Subscription');
 const Invoice = require('../models/Invoice');
