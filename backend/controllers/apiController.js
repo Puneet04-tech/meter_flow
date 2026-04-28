@@ -99,7 +99,7 @@ exports.revokeKey = async (req, res) => {
 
 exports.getKeys = async (req, res) => {
   try {
-    const keys = await ApiKey.find({ user: req.user.id }).populate('api', 'name').sort({ createdAt: -1 });
+    const keys = await ApiKey.find({ user: req.user.id, status: { $ne: 'revoked' } }).populate('api', 'name').sort({ createdAt: -1 });
     
     // Add rate limit info to each key
     const keysWithLimits = await Promise.all(keys.map(async (key) => {
