@@ -7,6 +7,7 @@ import API from '../api';
 const Dashboard: React.FC = () => {
   const [keys, setKeys] = useState<any[]>([]);
   const [apis, setApis] = useState<any[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
   const [showKeyModal, setShowKeyModal] = useState(false);
@@ -21,7 +22,17 @@ const Dashboard: React.FC = () => {
     }
     fetchKeys();
     fetchApis();
+    fetchUserProfile();
   }, [navigate]);
+
+  const fetchUserProfile = async () => {
+    try {
+      const res = await API.get('/billing/profile');
+      setUserProfile(res.data);
+    } catch (err) {
+      console.error("Failed to fetch user profile", err);
+    }
+  };
 
   const fetchApis = async () => {
     try {
@@ -253,7 +264,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <CreditCard className="text-red-500" size={24} />
-              <span className="text-2xl font-bold">Free</span>
+              <span className="text-2xl font-bold capitalize">{userProfile?.plan || 'Free'}</span>
             </div>
             <h3 className="font-bold text-lg mb-1">Current Plan</h3>
             <p className="text-gray-400 text-sm">Upgrade for more features</p>
