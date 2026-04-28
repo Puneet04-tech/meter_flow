@@ -3,6 +3,7 @@ const User = require('../models/User');
 const ApiKey = require('../models/ApiKey');
 const Subscription = require('../models/Subscription');
 const Invoice = require('../models/Invoice');
+const WalletTransaction = require('../models/WalletTransaction');
 const stripeService = require('../services/stripeService');
 
 exports.getUsageStats = async (req, res) => {
@@ -123,19 +124,53 @@ exports.upgradePlan = async (req, res) => {
       return res.status(400).json({ error: 'Invalid plan type' });
     }
     
-    console.log('[BILLING] Upgrading user to plan:', plan);
+    const user = await User.findById(req.user.id);
     
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { plan },
-      { new: true }
-    ).select('-password');
+    // Plan costs
+    const planCosts = {
+      free: 0,
+      pro: 29,
+      enterprise: 0 // Custom pricing, requires contact
+    };
     
-    console.log('[BILLING] ✅ Plan upgraded successfully');
+    const cost = planCosts[plan] || 0;
+    
+    // Check if user has sufficient wallet balance for paid plans
+    if (cost > 0 && user.walletBalance < cost) {
+      return res.status(402).json({ 
+        error: `Insufficient wallet balance. Required: $${cost}, Current: $${user.walletBalance.toFixed(2)}`,
+        required: cost,
+        current: user.walletBalance
+      });
+    }
+    
+    // Deduct from wallet if cost > 0
+    if (cost > 0) {
+      const balanceBefore = user.walletBalance;
+      user.walletBalance -= cost;
+      
+      // Record transaction
+      await WalletTransaction.create({
+        user: req.user.id,
+        type: 'deduction',
+        amount: cost,
+        reason: `plan_upgrade_to_${plan}`,
+        balanceBefore,
+        balanceAfter: user.walletBalance,
+        status: 'completed'
+      });
+    }
+    
+    user.plan = plan;
+    await user.save();
+    
+    console.log(`[BILLING] ✅ User upgraded to ${plan} plan (Cost: $${cost})`);
     res.json({ 
       success: true, 
       message: `Upgraded to ${plan} plan`,
-      user 
+      cost,
+      newBalance: user.walletBalance,
+      user: user.toObject()
     });
   } catch (error) {
     console.error('[BILLING] Upgrade error:', error);
@@ -262,5 +297,149 @@ exports.handleWebhook = async (req, res) => {
   } catch (error) {
     console.error('Webhook error:', error);
     res.status(400).json({ error: error.message });
+  }
+};
+
+// ============ WALLET ENDPOINTS ============
+
+// Get wallet balance
+exports.getWalletBalance = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    const transactions = await WalletTransaction.find({ user: req.user.id })
+      .sort({ createdAt: -1 })
+      .limit(20);
+    
+    res.json({
+      balance: user.walletBalance,
+      transactions
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Create Stripe payment intent for wallet topup
+exports.createTopupIntent = async (req, res) => {
+  try {
+    const { amount } = req.body;
+    
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+    
+    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    const user = await User.findById(req.user.id);
+    
+    // Ensure user has Stripe customer ID
+    let customerId = user.stripeCustomerId;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: { userId: req.user.id }
+      });
+      customerId = customer.id;
+      user.stripeCustomerId = customerId;
+      await user.save();
+    }
+    
+    // Create payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: 'usd',
+      customer: customerId,
+      metadata: {
+        userId: req.user.id,
+        type: 'wallet_topup'
+      }
+    });
+    
+    res.json({
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+      amount,
+      currency: 'USD'
+    });
+  } catch (error) {
+    console.error('[WALLET] Topup intent error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Confirm topup payment and add to wallet
+exports.confirmTopup = async (req, res) => {
+  try {
+    const { paymentIntentId, amount } = req.body;
+    
+    if (!paymentIntentId || !amount) {
+      return res.status(400).json({ error: 'Missing paymentIntentId or amount' });
+    }
+    
+    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    
+    // Check payment succeeded
+    if (paymentIntent.status !== 'succeeded') {
+      return res.status(400).json({ 
+        error: `Payment failed: ${paymentIntent.status}`,
+        status: paymentIntent.status
+      });
+    }
+    
+    const user = await User.findById(req.user.id);
+    const balanceBefore = user.walletBalance;
+    user.walletBalance += amount;
+    await user.save();
+    
+    // Record transaction
+    const transaction = await WalletTransaction.create({
+      user: req.user.id,
+      type: 'topup',
+      amount,
+      reason: 'stripe_payment',
+      stripePaymentId: paymentIntentId,
+      balanceBefore,
+      balanceAfter: user.walletBalance,
+      status: 'completed',
+      metadata: { stripeStatus: paymentIntent.status }
+    });
+    
+    console.log(`[WALLET] ✅ Topup confirmed: $${amount} for user ${req.user.id}`);
+    res.json({
+      success: true,
+      message: `Added $${amount} to wallet`,
+      newBalance: user.walletBalance,
+      transaction
+    });
+  } catch (error) {
+    console.error('[WALLET] Topup confirm error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get wallet transaction history
+exports.getWalletTransactions = async (req, res) => {
+  try {
+    const { limit = 50, page = 1 } = req.query;
+    const skip = (page - 1) * limit;
+    
+    const transactions = await WalletTransaction.find({ user: req.user.id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+    
+    const total = await WalletTransaction.countDocuments({ user: req.user.id });
+    
+    res.json({
+      transactions,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };

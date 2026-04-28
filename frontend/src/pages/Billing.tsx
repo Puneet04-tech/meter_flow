@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, AlertCircle, TrendingUp, Check } from 'lucide-react';
+import { CreditCard, AlertCircle, TrendingUp, Check, Wallet, ArrowDown } from 'lucide-react';
+import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import API from '../api';
 
 const Billing: React.FC = () => {
@@ -8,10 +9,17 @@ const Billing: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [wallet, setWallet] = useState<any>(null);
+  const [showTopup, setShowTopup] = useState(false);
+  const [topupAmount, setTopupAmount] = useState(10);
+  const [processing, setProcessing] = useState(false);
+  const stripe = useStripe();
+  const elements = useElements();
 
   useEffect(() => {
     fetchBilling();
     fetchUserProfile();
+    fetchWallet();
   }, []);
 
   const fetchBilling = async () => {
@@ -34,17 +42,84 @@ const Billing: React.FC = () => {
     }
   };
 
+  const fetchWallet = async () => {
+    try {
+      const res = await API.get('/billing/wallet');
+      setWallet(res.data);
+    } catch (err) {
+      console.error("Failed to fetch wallet", err);
+    }
+  };
+
+  const planCosts = {
+    free: 0,
+    pro: 29,
+    enterprise: 0
+  };
+
   const handleUpgradePlan = async (planType: string) => {
+    const cost = planCosts[planType as keyof typeof planCosts];
+    
+    // Check if user has sufficient balance
+    if (cost > 0 && (wallet?.balance || 0) < cost) {
+      alert(`❌ Insufficient wallet balance!\nRequired: $${cost}\nCurrent: $${(wallet?.balance || 0).toFixed(2)}\n\nPlease top up your wallet first.`);
+      setShowTopup(true);
+      return;
+    }
+
     setUpgrading(true);
     try {
-      await API.post('/billing/upgrade', { plan: planType });
-      alert(`✅ Upgraded to ${planType} plan!`);
+      const res = await API.post('/billing/upgrade', { plan: planType });
+      alert(`✅ Upgraded to ${planType} plan!${cost > 0 ? ` ($${cost} deducted from wallet)` : ''}`);
       fetchUserProfile();
+      fetchWallet();
       fetchBilling();
     } catch (err: any) {
       alert(`❌ Upgrade failed: ${err.response?.data?.error || err.message}`);
     }
     setUpgrading(false);
+  };
+
+  const handleTopup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!stripe || !elements) return;
+    setProcessing(true);
+
+    try {
+      // Step 1: Create payment intent
+      const intentRes = await API.post('/billing/wallet/topup-intent', { 
+        amount: topupAmount 
+      });
+
+      const { clientSecret } = intentRes.data;
+
+      // Step 2: Confirm payment
+      const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement)!,
+          billing_details: {}
+        }
+      });
+
+      if (result.error) {
+        alert(`❌ Payment failed: ${result.error.message}`);
+      } else if (result.paymentIntent?.status === 'succeeded') {
+        // Step 3: Confirm topup on backend
+        await API.post('/billing/wallet/confirm-topup', {
+          paymentIntentId: result.paymentIntent.id,
+          amount: topupAmount
+        });
+
+        alert(`✅ Successfully added $${topupAmount} to wallet!`);
+        setTopupAmount(10);
+        setShowTopup(false);
+        fetchWallet();
+      }
+    } catch (err: any) {
+      alert(`❌ Topup failed: ${err.response?.data?.error || err.message}`);
+    }
+    setProcessing(false);
   };
 
   return (
@@ -64,8 +139,114 @@ const Billing: React.FC = () => {
         </h2>
       </div>
 
-      {/* Main Billing Card */}
-      <section className="cyber-card">
+      {/* Wallet Card */}
+      <section className="cyber-card border-2 border-blue-500/50">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-cyber-muted text-xs uppercase font-black tracking-widest mb-2 flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-blue-400" />
+              Wallet_Balance
+            </div>
+            <div className="flex items-baseline gap-2 mb-4">
+              <span className="text-5xl font-black italic text-blue-400">${(wallet?.balance || 0).toFixed(2)}</span>
+              <span className="text-cyber-muted text-lg">USD</span>
+            </div>
+          </div>
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowTopup(!showTopup)}
+            className={`px-6 py-3 rounded font-black flex items-center gap-2 transition-all ${
+              showTopup
+                ? 'bg-blue-600 text-white'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
+          >
+            <ArrowDown className="w-4 h-4" />
+            Top Up Wallet
+          </motion.button>
+        </div>
+
+        {/* Topup Section */}
+        {showTopup && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mt-6 pt-6 border-t border-white/10"
+          >
+            <h3 className="text-lg font-bold mb-4">Add Funds to Wallet</h3>
+            <form onSubmit={handleTopup} className="space-y-4">
+              <div>
+                <label className="block text-sm mb-2">Amount (USD)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="5"
+                    max="10000"
+                    step="5"
+                    value={topupAmount}
+                    onChange={(e) => setTopupAmount(parseFloat(e.target.value))}
+                    className="flex-1 px-4 py-2 bg-white/5 border border-white/20 rounded text-white"
+                    placeholder="Enter amount"
+                  />
+                  <span className="px-4 py-2 bg-white/10 rounded text-white/50">USD</span>
+                </div>
+                <p className="text-xs text-white/50 mt-1">Minimum: $5 | Maximum: $10,000</p>
+              </div>
+
+              <div className="bg-white/5 border border-white/20 rounded p-4">
+                <label className="block text-sm mb-3">Card Details</label>
+                <CardElement
+                  options={{
+                    style: {
+                      base: {
+                        fontSize: '14px',
+                        color: '#ffffff',
+                        '::placeholder': {
+                          color: '#ffffff',
+                          opacity: 0.5
+                        }
+                      },
+                      invalid: {
+                        color: '#fa755a'
+                      }
+                    }
+                  }}
+                  className="p-2"
+                />
+              </div>
+
+              <div className="bg-blue-500/10 border border-blue-500/50 rounded p-3">
+                <p className="text-sm font-bold">
+                  Total: <span className="text-blue-400">${topupAmount.toFixed(2)}</span>
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={!stripe || processing}
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded font-black disabled:opacity-50"
+                >
+                  {processing ? 'Processing...' : `Pay $${topupAmount.toFixed(2)}`}
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={() => setShowTopup(false)}
+                  className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded font-black"
+                >
+                  Cancel
+                </motion.button>
+              </div>
+            </form>
+          </motion.div>
+        )}
+      </section>
         <div className="grid grid-cols-2 gap-8 mb-8">
           {/* Left Side - Amount Due */}
           <div>
@@ -219,13 +400,30 @@ const Billing: React.FC = () => {
                 <span>Webhooks & integrations</span>
               </div>
             </div>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => handleUpgradePlan('pro')}
-              disabled={upgrading || userProfile?.plan === 'pro'}
-              className="w-full py-2 bg-cyber-red text-white rounded font-bold hover:bg-red-700 disabled:opacity-50"
+              disabled={userProfile?.plan === 'pro' || upgrading}
+              className={`w-full py-2 rounded font-black transition-all ${
+                userProfile?.plan === 'pro'
+                  ? 'bg-cyber-red/30 text-white cursor-default'
+                  : (wallet?.balance || 0) >= 29
+                  ? 'bg-cyber-red hover:bg-red-700 text-white'
+                  : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+              } disabled:opacity-50`}
             >
-              {userProfile?.plan === 'pro' ? 'Current Plan' : 'Upgrade to Pro'}
-            </button>
+              {userProfile?.plan === 'pro'
+                ? 'Current Plan'
+                : (wallet?.balance || 0) >= 29
+                ? `Upgrade ($29)`
+                : `Top Up Needed ($29)`}
+            </motion.button>
+            {(wallet?.balance || 0) < 29 && userProfile?.plan !== 'pro' && (
+              <p className="text-xs text-yellow-400 mt-2">
+                Balance: ${(wallet?.balance || 0).toFixed(2)} | Need: ${(29 - (wallet?.balance || 0)).toFixed(2)} more
+              </p>
+            )}
           </motion.div>
 
           {/* Enterprise Plan */}

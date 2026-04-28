@@ -17,6 +17,12 @@ router.get('/subscription', auth, billingController.getSubscription);
 router.get('/invoices', auth, billingController.getInvoices);
 router.post('/invoices/generate', auth, billingController.generateInvoice);
 
+// Wallet routes
+router.get('/wallet', auth, billingController.getWalletBalance);
+router.post('/wallet/topup-intent', auth, billingController.createTopupIntent);
+router.post('/wallet/confirm-topup', auth, billingController.confirmTopup);
+router.get('/wallet/transactions', auth, billingController.getWalletTransactions);
+
 // Webhook route (no auth required)
 router.post('/webhook', billingController.handleWebhook);
 
