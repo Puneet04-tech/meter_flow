@@ -202,11 +202,7 @@ const Billing: React.FC = () => {
                     style: {
                       base: {
                         fontSize: '14px',
-                        color: '#ffffff',
-                        '::placeholder': {
-                          color: '#ffffff',
-                          opacity: 0.5
-                        }
+                        color: '#ffffff'
                       },
                       invalid: {
                         color: '#fa755a'
