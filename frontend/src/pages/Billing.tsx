@@ -247,6 +247,9 @@ const Billing: React.FC = () => {
           </motion.div>
         )}
       </section>
+
+      {/* Main Billing Card */}
+      <section className="cyber-card">
         <div className="grid grid-cols-2 gap-8 mb-8">
           {/* Left Side - Amount Due */}
           <div>
