@@ -242,46 +242,72 @@ const Dashboard: React.FC = () => {
         ))}
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+        <div className="ribbon-divider mt-12 mb-8"></div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            className="cyber-card hover-lift essence-glow accent-border-left"
+          >
             <div className="flex items-center justify-between mb-4">
-              <Key className="text-red-500" size={24} />
-              <span className="text-2xl font-bold">{keys.length}</span>
+              <Key className="text-indigo-400" size={24} />
+              <span className="text-3xl font-black bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">{keys.length}</span>
             </div>
             <h3 className="font-bold text-lg mb-1">Active Keys</h3>
             <p className="text-gray-400 text-sm">Total API keys in system</p>
-          </div>
+          </motion.div>
           
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            className="cyber-card hover-lift essence-glow accent-border-left"
+          >
             <div className="flex items-center justify-between mb-4">
-              <BarChart2 className="text-red-500" size={24} />
-              <span className="text-2xl font-bold">{keys.reduce((acc, k) => acc + (k.usage || 0), 0)}</span>
+              <BarChart2 className="text-blue-400" size={24} />
+              <span className="text-3xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{keys.reduce((acc, k) => acc + (k.usage || 0), 0)}</span>
             </div>
             <h3 className="font-bold text-lg mb-1">Total Requests</h3>
             <p className="text-gray-400 text-sm">All-time API usage</p>
-          </div>
+          </motion.div>
           
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            className="cyber-card hover-lift essence-glow accent-border-left"
+          >
             <div className="flex items-center justify-between mb-4">
-              <CreditCard className="text-red-500" size={24} />
-              <span className="text-2xl font-bold capitalize">{userProfile?.plan || 'Free'}</span>
+              <CreditCard className="text-purple-400" size={24} />
+              <div className="ribbon">
+                {userProfile?.plan || 'Free'}
+              </div>
             </div>
             <h3 className="font-bold text-lg mb-1">Current Plan</h3>
             <p className="text-gray-400 text-sm">Upgrade for more features</p>
-          </div>
+          </motion.div>
         </div>
 
+        <div className="ribbon-divider my-8"></div>
+
         {/* Upgrade CTA */}
-        <div className="bg-gradient-to-r from-red-600/20 to-orange-600/20 border border-red-500/30 rounded-lg p-8 mt-8 text-center">
-          <h3 className="text-2xl font-bold mb-4">Upgrade to Pro Plan</h3>
-          <p className="text-gray-300 mb-6">Unlock advanced features, higher rate limits, and priority support.</p>
-          <button 
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          className="bg-gradient-to-r from-indigo-900/40 via-purple-900/40 to-blue-900/40 border-2 border-gradient rounded-lg p-8 text-center hover-lift"
+          style={{
+            borderImage: 'linear-gradient(135deg, #6366f1, #8b5cf6, #3b82f6) 1'
+          }}
+        >
+          <div className="ribbon mb-4" style={{ margin: '0 auto', display: 'inline-block' }}>
+            Premium
+          </div>
+          <h3 className="text-3xl font-black mb-4 cyber-gradient-text">Upgrade to Pro Plan</h3>
+          <p className="text-gray-300 mb-6 text-lg">Unlock advanced features, higher rate limits, and priority support with our enhanced Pro tier.</p>
+          <motion.button 
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => navigate('/billing')}
-            className="bg-red-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-red-700 transition-all"
+            className="cyber-button"
           >
             Upgrade Now
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
 
         {/* Key Generation Modal */}
         {showKeyModal && (

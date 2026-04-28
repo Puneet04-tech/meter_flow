@@ -129,22 +129,22 @@ const Billing: React.FC = () => {
       className="space-y-8"
     >
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-8 accent-border-top pt-4">
         <div className="flex items-center gap-3 mb-2">
-          <span className="w-2 h-2 bg-cyber-red rounded-full animate-ping" />
-          <span className="text-cyber-red text-xs font-black tracking-[0.3em] uppercase">System_Active</span>
+          <span className="w-2 h-2 bg-indigo-400 rounded-full animate-ping" />
+          <span className="text-indigo-400 text-xs font-black tracking-[0.3em] uppercase">System_Active</span>
         </div>
         <h2 className="text-5xl font-black uppercase tracking-tighter italic">
-          Billing<span className="text-cyber-red">.</span>exe
+          Billing<span className="cyber-gradient-text">.</span>exe
         </h2>
       </div>
 
       {/* Wallet Card */}
-      <section className="cyber-card border-2 border-blue-500/50">
+      <section className="cyber-card border-2 border-indigo-500/50 hover-lift">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-cyber-muted text-xs uppercase font-black tracking-widest mb-2 flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-blue-400" />
+            <div className="text-gray-400 text-xs uppercase font-black tracking-widest mb-2 flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-indigo-400" />
               Wallet_Balance
             </div>
             <div className="flex items-baseline gap-2 mb-4">
@@ -335,13 +335,14 @@ const Billing: React.FC = () => {
 
       {/* Plan Upgrade Section */}
       <section className="space-y-4">
-        <h3 className="text-2xl font-bold mb-6">Upgrade_Your_Plan</h3>
+        <div className="ribbon-divider mb-8"></div>
+        <h3 className="text-2xl font-bold mb-6 cyber-gradient-text">Upgrade_Your_Plan</h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Free Plan */}
           <motion.div
             whileHover={{ scale: 1.02 }}
-            className={`cyber-card border-2 ${userProfile?.plan === 'free' ? 'border-cyber-red' : 'border-white/10'} p-6`}
+            className={`cyber-card hover-lift essence-glow border-2 ${userProfile?.plan === 'free' ? 'border-indigo-500' : 'border-white/20'} p-6 relative`}
           >
             <div className="mb-4">
               <h4 className="text-xl font-black mb-2">Free Plan</h4>
@@ -361,41 +362,40 @@ const Billing: React.FC = () => {
                 <span>Basic analytics</span>
               </div>
             </div>
-            <button
+            <motion.button
               disabled={userProfile?.plan === 'free'}
-              className="w-full py-2 bg-gray-700 text-white rounded disabled:opacity-50"
+              whileHover={{ scale: 1.05 }}
+              className="w-full py-2 cyber-button disabled:opacity-50"
             >
               {userProfile?.plan === 'free' ? 'Current Plan' : 'Downgrade'}
-            </button>
+            </motion.button>
           </motion.div>
 
           {/* Pro Plan */}
           <motion.div
-            whileHover={{ scale: 1.02 }}
-            className={`cyber-card border-2 ${userProfile?.plan === 'pro' ? 'border-cyber-red' : 'border-white/10'} p-6 relative`}
+            whileHover={{ scale: 1.05 }}
+            className={`cyber-card hover-lift essence-glow border-2 ${userProfile?.plan === 'pro' ? 'border-indigo-500' : 'border-white/20'} p-6 relative overflow-hidden`}
           >
-            <div className="absolute top-4 right-4 bg-cyber-red text-white px-3 py-1 rounded text-xs font-black">
-              POPULAR
-            </div>
+            <div className="ribbon mb-4">POPULAR</div>
             <div className="mb-4">
-              <h4 className="text-xl font-black mb-2">Pro Plan</h4>
-              <div className="text-3xl font-black text-cyber-red">$29<span className="text-sm">/month</span></div>
+              <h4 className="text-xl font-black mb-2 cyber-gradient-text">Pro Plan</h4>
+              <div className="text-3xl font-black text-indigo-400">$29<span className="text-sm">/month</span></div>
             </div>
             <div className="space-y-3 mb-6 text-sm">
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-cyber-red" />
+                <Check className="w-4 h-4 text-indigo-400" />
                 <span>50,000 requests/month</span>
               </div>
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-cyber-red" />
+                <Check className="w-4 h-4 text-indigo-400" />
                 <span>Advanced analytics</span>
               </div>
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-cyber-red" />
+                <Check className="w-4 h-4 text-indigo-400" />
                 <span>Priority support</span>
               </div>
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-cyber-red" />
+                <Check className="w-4 h-4 text-indigo-400" />
                 <span>Webhooks & integrations</span>
               </div>
             </div>
@@ -404,13 +404,11 @@ const Billing: React.FC = () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => handleUpgradePlan('pro')}
               disabled={userProfile?.plan === 'pro' || upgrading}
-              className={`w-full py-2 rounded font-black transition-all ${
+              className={`w-full py-3 cyber-button disabled:opacity-50 ${
                 userProfile?.plan === 'pro'
-                  ? 'bg-cyber-red/30 text-white cursor-default'
-                  : (wallet?.balance || 0) >= 29
-                  ? 'bg-cyber-red hover:bg-red-700 text-white'
-                  : 'bg-yellow-600 hover:bg-yellow-700 text-white'
-              } disabled:opacity-50`}
+                  ? 'opacity-60 cursor-default'
+                  : ''
+              }`}
             >
               {userProfile?.plan === 'pro'
                 ? 'Current Plan'
@@ -419,7 +417,7 @@ const Billing: React.FC = () => {
                 : `Top Up Needed ($29)`}
             </motion.button>
             {(wallet?.balance || 0) < 29 && userProfile?.plan !== 'pro' && (
-              <p className="text-xs text-yellow-400 mt-2">
+              <p className="text-xs text-indigo-300 mt-2 animate-pulse">
                 Balance: ${(wallet?.balance || 0).toFixed(2)} | Need: ${(29 - (wallet?.balance || 0)).toFixed(2)} more
               </p>
             )}
@@ -427,46 +425,64 @@ const Billing: React.FC = () => {
 
           {/* Enterprise Plan */}
           <motion.div
-            whileHover={{ scale: 1.02 }}
-            className={`cyber-card border-2 ${userProfile?.plan === 'enterprise' ? 'border-cyber-red' : 'border-white/10'} p-6`}
+            whileHover={{ scale: 1.05 }}
+            className={`cyber-card hover-lift essence-glow border-2 ${userProfile?.plan === 'enterprise' ? 'border-purple-500' : 'border-white/20'} p-6 relative overflow-hidden`}
           >
+            <div className="ribbon mb-4">PREMIUM</div>
             <div className="mb-4">
-              <h4 className="text-xl font-black mb-2">Enterprise</h4>
-              <div className="text-3xl font-black text-yellow-400">Custom<span className="text-sm">/month</span></div>
+              <h4 className="text-xl font-black mb-2 cyber-gradient-text">Enterprise</h4>
+              <div className="text-3xl font-black text-purple-400">$99<span className="text-sm">/month</span></div>
             </div>
             <div className="space-y-3 mb-6 text-sm">
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-yellow-400" />
+                <Check className="w-4 h-4 text-purple-400" />
                 <span>Unlimited requests</span>
               </div>
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-yellow-400" />
+                <Check className="w-4 h-4 text-purple-400" />
                 <span>Dedicated support</span>
               </div>
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-yellow-400" />
+                <Check className="w-4 h-4 text-purple-400" />
                 <span>Custom integrations</span>
               </div>
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-yellow-400" />
+                <Check className="w-4 h-4 text-purple-400" />
                 <span>SLA guarantee</span>
               </div>
             </div>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => handleUpgradePlan('enterprise')}
               disabled={upgrading || userProfile?.plan === 'enterprise'}
-              className="w-full py-2 bg-yellow-600 text-white rounded font-bold hover:bg-yellow-700 disabled:opacity-50"
+              className={`w-full py-3 cyber-button disabled:opacity-50 ${
+                userProfile?.plan === 'enterprise'
+                  ? 'opacity-60 cursor-default'
+                  : ''
+              }`}
             >
-              {userProfile?.plan === 'enterprise' ? 'Current Plan' : 'Contact Sales'}
-            </button>
+              {userProfile?.plan === 'enterprise' 
+                ? 'Current Plan' 
+                : (wallet?.balance || 0) >= 99
+                ? 'Upgrade ($99)'
+                : 'Top Up Needed ($99)'}
+            </motion.button>
+            {(wallet?.balance || 0) < 99 && userProfile?.plan !== 'enterprise' && (
+              <p className="text-xs text-purple-300 mt-2 animate-pulse">
+                Balance: ${(wallet?.balance || 0).toFixed(2)} | Need: ${(99 - (wallet?.balance || 0)).toFixed(2)} more
+              </p>
+            )}
           </motion.div>
         </div>
       </section>
 
+      <div className="ribbon-divider my-8"></div>
+
       {/* Invoices Section */}
-      <section className="cyber-card">
-        <h3 className="text-lg font-bold mb-4">Recent_Invoices</h3>
-        <div className="text-center py-8 text-cyber-muted">
+      <section className="cyber-card hover-lift">
+        <h3 className="text-lg font-bold mb-4 cyber-gradient-text">Recent_Invoices</h3>
+        <div className="text-center py-8 text-gray-400">
           No invoices yet. Invoices will appear here as you exceed free tier.
         </div>
       </section>
