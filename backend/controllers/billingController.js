@@ -110,7 +110,7 @@ exports.upgradePlan = async (req, res) => {
     const planCosts = {
       free: 0,
       pro: 29,
-      enterprise: 0 // Custom pricing, requires contact
+      enterprise: 99
     };
     
     const cost = planCosts[plan] || 0;

@@ -54,7 +54,7 @@ const Billing: React.FC = () => {
   const planCosts = {
     free: 0,
     pro: 29,
-    enterprise: 0
+    enterprise: 99
   };
 
   const handleUpgradePlan = async (planType: string) => {
