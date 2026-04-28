@@ -344,7 +344,7 @@ exports.createTopupIntent = async (req, res) => {
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: user.email,
-        metadata: { userId: req.user.id }
+        metadata: { userId: req.user.id.toString() }
       });
       customerId = customer.id;
       user.stripeCustomerId = customerId;
