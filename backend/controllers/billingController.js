@@ -6,6 +6,11 @@ const Invoice = require('../models/Invoice');
 const WalletTransaction = require('../models/WalletTransaction');
 const stripeService = require('../services/stripeService');
 
+// Initialize Stripe at module level
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || '');
+
+console.log('[BILLING] Stripe initialized with key:', process.env.STRIPE_SECRET_KEY ? process.env.STRIPE_SECRET_KEY.substring(0, 20) + '...' : 'NOT SET');
+
 exports.getUsageStats = async (req, res) => {
   try {
     const stats = await UsageLog.aggregate([
@@ -328,7 +333,10 @@ exports.createTopupIntent = async (req, res) => {
       return res.status(400).json({ error: 'Invalid amount' });
     }
     
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+    
     const user = await User.findById(req.user.id);
     
     // Ensure user has Stripe customer ID
@@ -375,7 +383,10 @@ exports.confirmTopup = async (req, res) => {
       return res.status(400).json({ error: 'Missing paymentIntentId or amount' });
     }
     
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return res.status(500).json({ error: 'Stripe not configured' });
+    }
+    
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     
     // Check payment succeeded
