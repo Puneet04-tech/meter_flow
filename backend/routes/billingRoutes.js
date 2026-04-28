@@ -8,6 +8,7 @@ router.get('/calculate', auth, billingController.calculateBilling);
 router.get('/key-stats', auth, billingController.getKeyStats);
 router.get('/profile', auth, billingController.getUserProfile);
 router.put('/profile', auth, billingController.updateUserProfile);
+router.post('/upgrade', auth, billingController.upgradePlan);
 
 // Subscription routes
 router.post('/subscription', auth, billingController.createSubscription);

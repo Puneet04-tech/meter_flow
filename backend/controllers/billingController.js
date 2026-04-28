@@ -7,28 +7,8 @@ const stripeService = require('../services/stripeService');
 
 exports.getUsageStats = async (req, res) => {
   try {
-    const queryUserId = req.user.id;
-    console.log('[ANALYTICS] Getting usage stats');
-    console.log('  - queryUserId:', queryUserId, 'type:', typeof queryUserId, 'stringified:', queryUserId.toString());
-    
-    // First check if ANY logs exist for this user
-    const allLogs = await UsageLog.find({ userId: queryUserId });
-    console.log('[ANALYTICS] Logs with direct match:', allLogs.length, allLogs.length > 0 ? allLogs[0] : 'none');
-    
-    // Also try without conversion
-    const allLogsAny = await UsageLog.find({});
-    console.log('[ANALYTICS] ALL logs in DB:', allLogsAny.length);
-    if (allLogsAny.length > 0) {
-      console.log('[ANALYTICS] Sample log:', {
-        userId: allLogsAny[0].userId,
-        userIdType: typeof allLogsAny[0].userId,
-        stringified: allLogsAny[0].userId.toString(),
-        equals: allLogsAny[0].userId.toString() === queryUserId.toString()
-      });
-    }
-    
     const stats = await UsageLog.aggregate([
-      { $match: { userId: queryUserId } },
+      { $match: { userId: req.user.id } },
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
@@ -38,11 +18,8 @@ exports.getUsageStats = async (req, res) => {
       },
       { $sort: { "_id": 1 } }
     ]);
-    
-    console.log('[ANALYTICS] Usage stats aggregation result:', stats);
     res.json(stats);
   } catch (error) {
-    console.error('[ANALYTICS] Error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -74,8 +51,6 @@ exports.calculateBilling = async (req, res) => {
 
 exports.getKeyStats = async (req, res) => {
   try {
-    console.log('[KEY_STATS] Getting key stats for user:', req.user.id);
-    
     const stats = await UsageLog.aggregate([
       { $match: { userId: req.user.id } },
       { $group: {
@@ -87,11 +62,8 @@ exports.getKeyStats = async (req, res) => {
       }
     ]);
     
-    console.log('[KEY_STATS] Raw stats:', stats);
-    
     const statsWithKeyInfo = await Promise.all(stats.map(async (stat) => {
       const key = await ApiKey.findOne({ key: stat._id }).populate('api', 'name');
-      console.log('[KEY_STATS] Key found:', key?.name, 'for apiKey:', stat._id);
       return {
         keyId: stat._id,
         keyName: key?.name || 'Unknown',
@@ -102,10 +74,8 @@ exports.getKeyStats = async (req, res) => {
       };
     }));
     
-    console.log('[KEY_STATS] Final stats with key info:', statsWithKeyInfo);
     res.json(statsWithKeyInfo);
   } catch (error) {
-    console.error('[KEY_STATS] Error:', error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -141,6 +111,34 @@ exports.updateUserProfile = async (req, res) => {
     
     res.json(user);
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.upgradePlan = async (req, res) => {
+  try {
+    const { plan } = req.body;
+    
+    if (!['free', 'pro', 'enterprise'].includes(plan)) {
+      return res.status(400).json({ error: 'Invalid plan type' });
+    }
+    
+    console.log('[BILLING] Upgrading user to plan:', plan);
+    
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { plan },
+      { new: true }
+    ).select('-password');
+    
+    console.log('[BILLING] ✅ Plan upgraded successfully');
+    res.json({ 
+      success: true, 
+      message: `Upgraded to ${plan} plan`,
+      user 
+    });
+  } catch (error) {
+    console.error('[BILLING] Upgrade error:', error);
     res.status(500).json({ error: error.message });
   }
 };

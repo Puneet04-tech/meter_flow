@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, AlertCircle, TrendingUp } from 'lucide-react';
+import { CreditCard, AlertCircle, TrendingUp, Check } from 'lucide-react';
 import API from '../api';
 
 const Billing: React.FC = () => {
   const [billing, setBilling] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [upgrading, setUpgrading] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
     fetchBilling();
+    fetchUserProfile();
   }, []);
 
   const fetchBilling = async () => {
@@ -20,6 +23,28 @@ const Billing: React.FC = () => {
       console.error("Failed to fetch billing data", err);
     }
     setLoading(false);
+  };
+
+  const fetchUserProfile = async () => {
+    try {
+      const res = await API.get('/billing/profile');
+      setUserProfile(res.data);
+    } catch (err) {
+      console.error("Failed to fetch user profile", err);
+    }
+  };
+
+  const handleUpgradePlan = async (planType: string) => {
+    setUpgrading(true);
+    try {
+      await API.post('/billing/upgrade', { plan: planType });
+      alert(`✅ Upgraded to ${planType} plan!`);
+      fetchUserProfile();
+      fetchBilling();
+    } catch (err: any) {
+      alert(`❌ Upgrade failed: ${err.response?.data?.error || err.message}`);
+    }
+    setUpgrading(false);
   };
 
   return (
@@ -125,6 +150,119 @@ const Billing: React.FC = () => {
             <span>Current Plan</span>
             <span className="font-black text-cyber-red uppercase">{billing?.status}</span>
           </div>
+        </div>
+      </section>
+
+      {/* Plan Upgrade Section */}
+      <section className="space-y-4">
+        <h3 className="text-2xl font-bold mb-6">Upgrade_Your_Plan</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Free Plan */}
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className={`cyber-card border-2 ${userProfile?.plan === 'free' ? 'border-cyber-red' : 'border-white/10'} p-6`}
+          >
+            <div className="mb-4">
+              <h4 className="text-xl font-black mb-2">Free Plan</h4>
+              <div className="text-3xl font-black text-green-400">$0<span className="text-sm">/month</span></div>
+            </div>
+            <div className="space-y-3 mb-6 text-sm">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>1,000 requests/month</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>Pay for overages</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>Basic analytics</span>
+              </div>
+            </div>
+            <button
+              disabled={userProfile?.plan === 'free'}
+              className="w-full py-2 bg-gray-700 text-white rounded disabled:opacity-50"
+            >
+              {userProfile?.plan === 'free' ? 'Current Plan' : 'Downgrade'}
+            </button>
+          </motion.div>
+
+          {/* Pro Plan */}
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className={`cyber-card border-2 ${userProfile?.plan === 'pro' ? 'border-cyber-red' : 'border-white/10'} p-6 relative`}
+          >
+            <div className="absolute top-4 right-4 bg-cyber-red text-white px-3 py-1 rounded text-xs font-black">
+              POPULAR
+            </div>
+            <div className="mb-4">
+              <h4 className="text-xl font-black mb-2">Pro Plan</h4>
+              <div className="text-3xl font-black text-cyber-red">$29<span className="text-sm">/month</span></div>
+            </div>
+            <div className="space-y-3 mb-6 text-sm">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-cyber-red" />
+                <span>50,000 requests/month</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-cyber-red" />
+                <span>Advanced analytics</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-cyber-red" />
+                <span>Priority support</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-cyber-red" />
+                <span>Webhooks & integrations</span>
+              </div>
+            </div>
+            <button
+              onClick={() => handleUpgradePlan('pro')}
+              disabled={upgrading || userProfile?.plan === 'pro'}
+              className="w-full py-2 bg-cyber-red text-white rounded font-bold hover:bg-red-700 disabled:opacity-50"
+            >
+              {userProfile?.plan === 'pro' ? 'Current Plan' : 'Upgrade to Pro'}
+            </button>
+          </motion.div>
+
+          {/* Enterprise Plan */}
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className={`cyber-card border-2 ${userProfile?.plan === 'enterprise' ? 'border-cyber-red' : 'border-white/10'} p-6`}
+          >
+            <div className="mb-4">
+              <h4 className="text-xl font-black mb-2">Enterprise</h4>
+              <div className="text-3xl font-black text-yellow-400">Custom<span className="text-sm">/month</span></div>
+            </div>
+            <div className="space-y-3 mb-6 text-sm">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-yellow-400" />
+                <span>Unlimited requests</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-yellow-400" />
+                <span>Dedicated support</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-yellow-400" />
+                <span>Custom integrations</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-yellow-400" />
+                <span>SLA guarantee</span>
+              </div>
+            </div>
+            <button
+              onClick={() => handleUpgradePlan('enterprise')}
+              disabled={upgrading || userProfile?.plan === 'enterprise'}
+              className="w-full py-2 bg-yellow-600 text-white rounded font-bold hover:bg-yellow-700 disabled:opacity-50"
+            >
+              {userProfile?.plan === 'enterprise' ? 'Current Plan' : 'Contact Sales'}
+            </button>
+          </motion.div>
         </div>
       </section>
 
