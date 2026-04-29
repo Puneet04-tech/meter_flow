@@ -2,7 +2,7 @@
   # Directory that contains the built application
   publish = "frontend/build"
   # Command to build the application
-  command = "cd frontend && npm ci && npm run build"
+  command = "cd frontend && npm ci --legacy-peer-deps && npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
