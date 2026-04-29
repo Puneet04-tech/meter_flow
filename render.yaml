@@ -32,7 +32,7 @@ services:
       - key: STRIPE_ENTERPRISE_PRICE_ID
         sync: false
       - key: CORS_ORIGIN
-        value: https://meterflow-frontend.onrender.com
+        value: https://meter-flow.onrender.com
 
   # Frontend Service
   - type: web
@@ -43,7 +43,7 @@ services:
     staticPublishPath: frontend/build
     envVars:
       - key: REACT_APP_API_URL
-        value: https://meterflow-backend.onrender.com
+        value: https://meter-flow.onrender.com
     routes:
       - type: rewrite
         source: /.*

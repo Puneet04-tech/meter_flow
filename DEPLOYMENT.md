@@ -136,14 +136,14 @@ NODE_VERSION=18
 ## 📊 Service URLs
 
 ### Render URLs
-- **Backend**: `https://meterflow-backend.onrender.com`
-- **Frontend**: `https://meterflow-frontend.onrender.com`
+- **Backend**: `https://meter-flow.onrender.com`
+- **Frontend**: `https://meter-flow.onrender.com`
 - **Database**: Internal (not accessible publicly)
 - **Redis**: Internal (not accessible publicly)
 
 ### Netlify URLs
 - **Frontend**: `https://your-site-name.netlify.app`
-- **Backend**: Same as Render backend URL
+- **Backend**: `https://meter-flow.onrender.com`
 
 ---
 
@@ -154,7 +154,7 @@ NODE_VERSION=18
 // In backend/server.js
 app.use(cors({
   origin: [
-    'https://meterflow-frontend.onrender.com',
+    'https://meter-flow.onrender.com',
     'https://your-site-name.netlify.app',
     'http://localhost:3000'
   ],
@@ -193,17 +193,17 @@ https://your-backend-url.onrender.com/api/webhooks/stripe
 ### Health Checks
 ```bash
 # Backend health check
-curl https://your-backend-url.onrender.com/
+curl https://meter-flow.onrender.com/
 
 # Frontend accessibility
-curl https://your-frontend-url.onrender.com/
+curl https://meter-flow.onrender.com/
 ```
 
 ### API Testing
 ```bash
 # Test API endpoints
-curl https://your-backend-url.onrender.com/api/auth/register
-curl https://your-backend-url.onrender.com/api/billing/plans
+curl https://meter-flow.onrender.com/api/auth/register
+curl https://meter-flow.onrender.com/api/billing/plans
 ```
 
 ---
@@ -248,13 +248,13 @@ curl https://your-backend-url.onrender.com/api/billing/plans
 ### Debug Commands
 ```bash
 # Check backend logs
-curl https://your-backend-url.onrender.com/
+curl https://meter-flow.onrender.com/
 
 # Check frontend build
 # View build logs in Netlify dashboard
 
 # Test API connectivity
-curl -X POST https://your-backend-url.onrender.com/api/auth/register \
+curl -X POST https://meter-flow.onrender.com/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"test123"}'
 ```

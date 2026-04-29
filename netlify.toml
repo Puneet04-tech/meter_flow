@@ -8,7 +8,7 @@
 
 [build.environment]
   NODE_VERSION = "18"
-  REACT_APP_API_URL = "https://your-backend-url.onrender.com"
+  REACT_APP_API_URL = "https://meter-flow.onrender.com"
 
 # Redirects for client-side routing
 [[redirects]]
@@ -43,13 +43,13 @@
 
 # Context-specific configurations
 [context.production.environment]
-  REACT_APP_API_URL = "https://your-backend-url.onrender.com"
+  REACT_APP_API_URL = "https://meter-flow.onrender.com"
 
 [context.deploy-preview.environment]
-  REACT_APP_API_URL = "https://your-backend-url.onrender.com"
+  REACT_APP_API_URL = "https://meter-flow.onrender.com"
 
 [context.branch-deploy.environment]
-  REACT_APP_API_URL = "https://your-backend-url.onrender.com"
+  REACT_APP_API_URL = "https://meter-flow.onrender.com"
 
 # Plugin configurations
 [[plugins]]
