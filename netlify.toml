@@ -9,7 +9,7 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_VERSION = "8"
-  REACT_APP_API_URL = "https://meter-flow.onrender.com"
+  REACT_APP_API_URL = "https://meter-flow.onrender.com/api"
   GENERATE_SOURCEMAP = "false"
   ESLINT_NO_DEV_ERRORS = "true"
   CI = "false"
@@ -47,13 +47,13 @@
 
 # Context-specific configurations
 [context.production.environment]
-  REACT_APP_API_URL = "https://meter-flow.onrender.com"
+  REACT_APP_API_URL = "https://meter-flow.onrender.com/api"
 
 [context.deploy-preview.environment]
-  REACT_APP_API_URL = "https://meter-flow.onrender.com"
+  REACT_APP_API_URL = "https://meter-flow.onrender.com/api"
 
 [context.branch-deploy.environment]
-  REACT_APP_API_URL = "https://meter-flow.onrender.com"
+  REACT_APP_API_URL = "https://meter-flow.onrender.com/api"
 
 # Plugin configurations
 [[plugins]]
