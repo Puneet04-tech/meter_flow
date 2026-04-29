@@ -31,6 +31,8 @@ services:
         sync: false
       - key: STRIPE_ENTERPRISE_PRICE_ID
         sync: false
+      - key: CORS_ORIGIN
+        value: https://meterflow-frontend.onrender.com
 
   # Frontend Service
   - type: web
@@ -39,6 +41,9 @@ services:
     plan: free
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://meterflow-backend.onrender.com
     routes:
       - type: rewrite
         source: /.*
