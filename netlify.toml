@@ -1,8 +1,10 @@
 [build]
+  # Directory to change to before starting build
+  base = "frontend/"
   # Directory that contains the built application
-  publish = "frontend/build"
+  publish = "build"
   # Command to build the application
-  command = "cd frontend && npm ci --legacy-peer-deps && npm run build"
+  command = "npm ci --legacy-peer-deps && npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
