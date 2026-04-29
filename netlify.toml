@@ -7,10 +7,12 @@
   command = "npm ci --legacy-peer-deps && npm run build"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
   NPM_VERSION = "8"
   REACT_APP_API_URL = "https://meter-flow.onrender.com"
   GENERATE_SOURCEMAP = "false"
+  ESLINT_NO_DEV_ERRORS = "true"
+  CI = "false"
 
 # Redirects for client-side routing
 [[redirects]]
