@@ -5,9 +5,12 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['admin', 'owner', 'consumer'], default: 'consumer' },
-  plan: { type: String, enum: ['free', 'pro', 'enterprise'], default: 'free' },
+  plan: { type: String, enum: ['free', 'payg', 'pro', 'enterprise'], default: 'free' },
   walletBalance: { type: Number, default: 0, min: 0 }, // Wallet balance in USD
   stripeCustomerId: { type: String, sparse: true },
+  autoRecharge: { type: Boolean, default: false },
+  rechargeThreshold: { type: Number, default: 5 },
+  rechargeAmount: { type: Number, default: 10 },
   createdAt: { type: Date, default: Date.now },
 });
 

@@ -10,8 +10,14 @@ class StripeService {
       free: {
         name: 'Free',
         priceId: null, // No price for free plan
-        requests: 1000,
-        features: ['Basic API access', '1000 requests/month']
+        requests: 5,
+        features: ['Basic API access', '5 requests/month']
+      },
+      payg: {
+        name: 'Pay As You Go',
+        priceId: null, // No subscription for PAYG
+        requests: 0, // No free tier, all requests are billable
+        features: ['No monthly fee', 'Pay per request', 'Advanced analytics', 'Auto-recharge']
       },
       pro: {
         name: 'Pro',

@@ -100,7 +100,7 @@ exports.upgradePlan = async (req, res) => {
   try {
     const { plan } = req.body;
     
-    if (!['free', 'pro', 'enterprise'].includes(plan)) {
+    if (!['free', 'payg', 'pro', 'enterprise'].includes(plan)) {
       return res.status(400).json({ error: 'Invalid plan type' });
     }
     
@@ -109,6 +109,7 @@ exports.upgradePlan = async (req, res) => {
     // Plan costs
     const planCosts = {
       free: 0,
+      payg: 0,
       pro: 29,
       enterprise: 99
     };
@@ -122,6 +123,25 @@ exports.upgradePlan = async (req, res) => {
         required: cost,
         current: user.walletBalance
       });
+    }
+    
+    // Handle plan downgrades (from paid to free)
+    const isDowngrade = (user.plan === 'pro' || user.plan === 'enterprise' || user.plan === 'payg') && 
+                       (plan === 'free' || (plan === 'payg' && user.plan !== 'payg'));
+    
+    // For downgrades, cancel any active subscriptions
+    if (isDowngrade && (user.plan === 'pro' || user.plan === 'enterprise')) {
+      try {
+        await stripeService.cancelSubscription(req.user.id);
+        console.log(`[BILLING] Cancelled subscription for user ${req.user.id} due to plan downgrade`);
+      } catch (err) {
+        console.log(`[BILLING] No active subscription to cancel for user ${req.user.id}`);
+      }
+    }
+    
+    // Reset auto-recharge for non-PAYG plans
+    if (plan !== 'payg') {
+      user.autoRecharge = false;
     }
     
     // Deduct from wallet if cost > 0
@@ -142,12 +162,21 @@ exports.upgradePlan = async (req, res) => {
     }
     
     user.plan = plan;
+    
+    // For Pay As You Go, enable auto-recharge if wallet balance is low
+    if (plan === 'payg') {
+      user.autoRecharge = true;
+      user.rechargeThreshold = 5; // Auto-recharge when balance drops below $5
+      user.rechargeAmount = 10; // Recharge $10 at a time
+    }
+    
     await user.save();
     
-    console.log(`[BILLING] ✅ User upgraded to ${plan} plan (Cost: $${cost})`);
+    const action = isDowngrade ? 'downgraded' : 'upgraded';
+    console.log(`[BILLING] ✅ User ${action} to ${plan} plan (Cost: $${cost})`);
     res.json({ 
       success: true, 
-      message: `Upgraded to ${plan} plan`,
+      message: `${action.charAt(0).toUpperCase() + action.slice(1)} to ${plan} plan`,
       cost,
       newBalance: user.walletBalance,
       user: user.toObject()
@@ -155,6 +184,63 @@ exports.upgradePlan = async (req, res) => {
   } catch (error) {
     console.error('[BILLING] Upgrade error:', error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+// Pay As You Go usage deduction
+exports.deductPayAsYouGoUsage = async (userId, requestCount) => {
+  try {
+    const user = await User.findById(userId);
+    
+    if (user.plan !== 'payg') {
+      return { success: false, message: 'User is not on Pay As You Go plan' };
+    }
+    
+    const costPerRequest = 0.001; // $0.10 per 100 requests
+    const totalCost = requestCount * costPerRequest;
+    
+    if (user.walletBalance < totalCost) {
+      // Check if auto-recharge is enabled
+      if (user.autoRecharge && user.walletBalance < user.rechargeThreshold) {
+        console.log(`[PAYG] Auto-recharging wallet for user ${userId}`);
+        // In a real implementation, this would trigger a Stripe payment
+        // For now, we'll just add funds to the wallet
+        user.walletBalance += user.rechargeAmount;
+        
+        await WalletTransaction.create({
+          user: userId,
+          type: 'recharge',
+          amount: user.rechargeAmount,
+          reason: 'auto_recharge',
+          balanceBefore: user.walletBalance - user.rechargeAmount,
+          balanceAfter: user.walletBalance,
+          status: 'completed'
+        });
+      }
+      
+      if (user.walletBalance < totalCost) {
+        return { success: false, message: 'Insufficient wallet balance' };
+      }
+    }
+    
+    const balanceBefore = user.walletBalance;
+    user.walletBalance -= totalCost;
+    await user.save();
+    
+    await WalletTransaction.create({
+      user: userId,
+      type: 'usage',
+      amount: totalCost,
+      reason: `api_usage_${requestCount}_requests`,
+      balanceBefore,
+      balanceAfter: user.walletBalance,
+      status: 'completed'
+    });
+    
+    return { success: true, amount: totalCost, remainingBalance: user.walletBalance };
+  } catch (error) {
+    console.error('[PAYG] Usage deduction error:', error);
+    return { success: false, error: error.message };
   }
 };
 
@@ -239,7 +325,11 @@ exports.calculateBilling = async (req, res) => {
     let amount = 0;
     let ratePerRequest = 0;
     
-    if (subscription?.plan === 'pro') {
+    if (subscription?.plan === 'payg') {
+      // Pay As You Go: No base fee, $0.10 per 100 requests
+      ratePerRequest = 0.001; // $0.10 per 100 requests = $0.001 per request
+      amount = billableRequests * ratePerRequest;
+    } else if (subscription?.plan === 'pro') {
       amount = 29; // Base fee
       ratePerRequest = 0.01;
       amount += billableRequests * ratePerRequest;

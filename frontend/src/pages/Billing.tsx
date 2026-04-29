@@ -53,8 +53,31 @@ const Billing: React.FC = () => {
 
   const planCosts = {
     free: 0,
+    payg: 0,
     pro: 29,
     enterprise: 99
+  };
+
+  const getPlanButtonText = (planType: string) => {
+    if (userProfile?.plan === planType) return 'Current Plan';
+    
+    const cost = planCosts[planType as keyof typeof planCosts];
+    const currentPlan = userProfile?.plan;
+    
+    // Downgrade logic
+    if ((currentPlan === 'pro' || currentPlan === 'enterprise' || currentPlan === 'payg') && 
+        (planType === 'free' || (planType === 'payg' && currentPlan !== 'payg'))) {
+      return `Switch to ${planType.charAt(0).toUpperCase() + planType.slice(1)}`;
+    }
+    
+    // Upgrade logic
+    if (cost > 0) {
+      return (wallet?.balance || 0) >= cost 
+        ? `Upgrade ($${cost})` 
+        : `Top Up Needed ($${cost})`;
+    }
+    
+    return `Select ${planType.charAt(0).toUpperCase() + planType.slice(1)}`;
   };
 
   const handleUpgradePlan = async (planType: string) => {
@@ -70,12 +93,14 @@ const Billing: React.FC = () => {
     setUpgrading(true);
     try {
       const res = await API.post('/billing/upgrade', { plan: planType });
-      alert(`✅ Upgraded to ${planType} plan!${cost > 0 ? ` ($${cost} deducted from wallet)` : ''}`);
+      const message = res.data.message;
+      const costMessage = cost > 0 ? ` ($${cost} deducted from wallet)` : '';
+      alert(`✅ ${message}!${costMessage}`);
       fetchUserProfile();
       fetchWallet();
       fetchBilling();
     } catch (err: any) {
-      alert(`❌ Upgrade failed: ${err.response?.data?.error || err.message}`);
+      alert(`❌ Plan change failed: ${err.response?.data?.error || err.message}`);
     }
     setUpgrading(false);
   };
@@ -316,11 +341,15 @@ const Billing: React.FC = () => {
         <div className="space-y-3 text-sm">
           <div className="flex justify-between pb-2 border-b border-white/10">
             <span>Free Tier</span>
-            <span className="font-black">1,000 requests/month</span>
+            <span className="font-black">5 requests/month</span>
           </div>
           <div className="flex justify-between pb-2 border-b border-white/10">
-            <span>Overage Rate</span>
-            <span className="font-black">$0.10 per 100 requests</span>
+            <span>Pay As You Go Rate</span>
+            <span className="font-black text-green-400">$0.10 per 100 requests</span>
+          </div>
+          <div className="flex justify-between pb-2 border-b border-white/10">
+            <span>Overage Rate (Pro/Enterprise)</span>
+            <span className="font-black">$0.01 per request</span>
           </div>
           <div className="flex justify-between pb-2 border-b border-white/10">
             <span>Billing Cycle</span>
@@ -338,7 +367,48 @@ const Billing: React.FC = () => {
         <div className="ribbon-divider mb-8"></div>
         <h3 className="text-2xl font-bold mb-6 cyber-gradient-text">Upgrade_Your_Plan</h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Pay As You Go Plan */}
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            className={`cyber-card hover-lift essence-glow border-2 ${userProfile?.plan === 'payg' ? 'border-green-500' : 'border-white/20'} p-6 relative`}
+          >
+            <div className="mb-4">
+              <h4 className="text-xl font-black mb-2 text-green-400">Pay As You Go</h4>
+              <div className="text-3xl font-black text-green-400">$0<span className="text-sm">/month</span></div>
+            </div>
+            <div className="space-y-3 mb-6 text-sm">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>No monthly fee</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>$0.10 per 100 requests</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>Pay only for usage</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>Advanced analytics</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>Auto-recharge wallet</span>
+              </div>
+            </div>
+            <motion.button
+              disabled={userProfile?.plan === 'payg'}
+              whileHover={{ scale: 1.05 }}
+              className="w-full py-2 cyber-button disabled:opacity-50"
+              onClick={() => handleUpgradePlan('payg')}
+            >
+              {userProfile?.plan === 'payg' ? 'Current Plan' : 'Select Plan'}
+            </motion.button>
+          </motion.div>
+
           {/* Free Plan */}
           <motion.div
             whileHover={{ scale: 1.02 }}
@@ -351,7 +421,7 @@ const Billing: React.FC = () => {
             <div className="space-y-3 mb-6 text-sm">
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-green-400" />
-                <span>1,000 requests/month</span>
+                <span>5 requests/month</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-green-400" />
@@ -361,13 +431,18 @@ const Billing: React.FC = () => {
                 <Check className="w-4 h-4 text-green-400" />
                 <span>Basic analytics</span>
               </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-400" />
+                <span>Rate limiting</span>
+              </div>
             </div>
             <motion.button
               disabled={userProfile?.plan === 'free'}
               whileHover={{ scale: 1.05 }}
               className="w-full py-2 cyber-button disabled:opacity-50"
+              onClick={() => handleUpgradePlan('free')}
             >
-              {userProfile?.plan === 'free' ? 'Current Plan' : 'Downgrade'}
+              {getPlanButtonText('free')}
             </motion.button>
           </motion.div>
 
@@ -410,11 +485,7 @@ const Billing: React.FC = () => {
                   : ''
               }`}
             >
-              {userProfile?.plan === 'pro'
-                ? 'Current Plan'
-                : (wallet?.balance || 0) >= 29
-                ? `Upgrade ($29)`
-                : `Top Up Needed ($29)`}
+              {getPlanButtonText('pro')}
             </motion.button>
             {(wallet?.balance || 0) < 29 && userProfile?.plan !== 'pro' && (
               <p className="text-xs text-indigo-300 mt-2 animate-pulse">
@@ -462,11 +533,7 @@ const Billing: React.FC = () => {
                   : ''
               }`}
             >
-              {userProfile?.plan === 'enterprise' 
-                ? 'Current Plan' 
-                : (wallet?.balance || 0) >= 99
-                ? 'Upgrade ($99)'
-                : 'Top Up Needed ($99)'}
+              {getPlanButtonText('enterprise')}
             </motion.button>
             {(wallet?.balance || 0) < 99 && userProfile?.plan !== 'enterprise' && (
               <p className="text-xs text-purple-300 mt-2 animate-pulse">
