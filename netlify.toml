@@ -1,14 +1,14 @@
 [build]
-  # Directory to change to before starting build
-  base = "frontend/"
   # Directory that contains the built application
-  publish = "build"
+  publish = "frontend/build"
   # Command to build the application
-  command = "npm run build"
+  command = "cd frontend && npm ci && npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
+  NPM_VERSION = "8"
   REACT_APP_API_URL = "https://meter-flow.onrender.com"
+  GENERATE_SOURCEMAP = "false"
 
 # Redirects for client-side routing
 [[redirects]]
