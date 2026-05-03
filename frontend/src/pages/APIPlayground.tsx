@@ -96,7 +96,7 @@ const APIPlayground: React.FC = () => {
         // Route through MeterFlow gateway using the actual API ID
         // Remove protocol from URL and use the API's base URL path
         const pathOnly = request.url.replace(/^https?:\/\/[^\/]+/, '');
-        finalUrl = `http://localhost:5000/gateway/${selectedKey.api._id}${pathOnly}`;
+        finalUrl = `${process.env.REACT_APP_API_URL?.replace('/api', '')}/gateway/${selectedKey.api._id}${pathOnly}`;
         
         console.log('🚀 Gateway Request:', { finalUrl, apiId: selectedKey.api._id, keyId: selectedKeyId });
       }
